@@ -1,0 +1,211 @@
+# Backend Development Tasks for Eventwala
+
+## Authentication Backend Tasks
+
+### 1. Firebase Authentication Setup
+- [ ] Set up Firebase project in Firebase Console
+- [ ] Configure authentication providers (Email/Password, Google)
+- [ ] Set up Firebase Admin SDK for server-side operations
+- [ ] Configure security rules for authentication
+
+### 2. User Management
+- [ ] Create user profile collection in Firestore
+- [ ] Set up user profile creation on first login
+- [ ] Implement user profile update functionality
+- [ ] Add user role management (customer, vendor, admin)
+
+### 3. Database Schema Design
+```
+Users Collection:
+- uid (string) - Firebase Auth UID
+- email (string)
+- displayName (string)
+- firstName (string)
+- lastName (string)
+- role (string) - 'customer', 'vendor', 'admin'
+- profileImage (string) - URL
+- phoneNumber (string)
+- address (object)
+- createdAt (timestamp)
+- updatedAt (timestamp)
+```
+
+### 4. API Endpoints for Authentication
+- [ ] POST /api/auth/register - Handle user registration
+- [ ] POST /api/auth/login - Handle user login
+- [ ] POST /api/auth/logout - Handle user logout
+- [ ] GET /api/auth/profile - Get user profile
+- [ ] PUT /api/auth/profile - Update user profile
+- [ ] POST /api/auth/forgot-password - Password reset
+
+## Dashboard Backend Tasks
+
+### 1. Event Types Management
+- [ ] Create EventTypes collection in database
+- [ ] Seed database with initial event types
+- [ ] API endpoints for event types CRUD operations
+
+### 2. Venue Management System
+```
+Venues Collection:
+- id (string)
+- name (string)
+- description (string)
+- images (array of strings)
+- location (object)
+  - address (string)
+  - city (string)
+  - state (string)
+  - zipCode (string)
+  - coordinates (object)
+- capacity (number)
+- amenities (array of strings)
+- pricing (object)
+  - basePrice (number)
+  - currency (string)
+  - pricingType (string) - 'per_hour', 'per_day', 'per_event'
+- availability (array of objects)
+- eventTypes (array of strings)
+- vendorId (string)
+- rating (number)
+- reviews (array of objects)
+- status (string) - 'active', 'inactive', 'pending'
+- createdAt (timestamp)
+- updatedAt (timestamp)
+```
+
+### 3. Booking System
+```
+Bookings Collection:
+- id (string)
+- userId (string)
+- venueId (string)
+- eventType (string)
+- eventDate (timestamp)
+- startTime (timestamp)
+- endTime (timestamp)
+- guestCount (number)
+- totalAmount (number)
+- status (string) - 'pending', 'confirmed', 'cancelled', 'completed'
+- paymentStatus (string) - 'pending', 'paid', 'refunded'
+- specialRequests (string)
+- contactInfo (object)
+- createdAt (timestamp)
+- updatedAt (timestamp)
+```
+
+### 4. Search and Filter System
+- [ ] Implement venue search by location
+- [ ] Add filters for event type, capacity, price range
+- [ ] Implement sorting (price, rating, distance)
+- [ ] Add availability checking
+
+### 5. API Endpoints for Dashboard
+- [ ] GET /api/events/types - Get all event types
+- [ ] GET /api/venues/search - Search venues with filters
+- [ ] GET /api/venues/:id - Get venue details
+- [ ] POST /api/bookings - Create new booking
+- [ ] GET /api/bookings/user/:userId - Get user bookings
+- [ ] PUT /api/bookings/:id - Update booking
+- [ ] DELETE /api/bookings/:id - Cancel booking
+
+### 6. Vendor Management System
+```
+Vendors Collection:
+- id (string)
+- userId (string) - Reference to Users collection
+- businessName (string)
+- businessType (string)
+- description (string)
+- services (array of strings)
+- portfolio (array of image URLs)
+- contactInfo (object)
+- businessAddress (object)
+- verificationStatus (string) - 'pending', 'verified', 'rejected'
+- rating (number)
+- totalBookings (number)
+- createdAt (timestamp)
+- updatedAt (timestamp)
+```
+
+### 7. Vendor API Endpoints
+- [ ] POST /api/vendors/register - Vendor registration
+- [ ] GET /api/vendors/profile - Get vendor profile
+- [ ] PUT /api/vendors/profile - Update vendor profile
+- [ ] POST /api/vendors/venues - Add new venue
+- [ ] GET /api/vendors/venues - Get vendor venues
+- [ ] PUT /api/vendors/venues/:id - Update venue
+- [ ] DELETE /api/vendors/venues/:id - Delete venue
+
+### 8. Payment Integration
+- [ ] Integrate payment gateway (Stripe/Razorpay)
+- [ ] Implement booking payment flow
+- [ ] Add refund functionality
+- [ ] Set up webhook handlers for payment events
+
+### 9. Notification System
+- [ ] Email notifications for booking confirmations
+- [ ] SMS notifications for important updates
+- [ ] In-app notification system
+- [ ] Push notifications for mobile app
+
+### 10. Admin Panel Backend
+- [ ] Admin authentication and authorization
+- [ ] User management APIs
+- [ ] Vendor verification system
+- [ ] Booking management and analytics
+- [ ] Revenue tracking and reporting
+
+### 11. Security and Validation
+- [ ] Input validation for all API endpoints
+- [ ] Rate limiting implementation
+- [ ] CORS configuration
+- [ ] Data sanitization
+- [ ] SQL injection prevention
+- [ ] XSS protection
+
+### 12. File Upload System
+- [ ] Image upload for venues
+- [ ] Profile picture upload
+- [ ] Document upload for vendor verification
+- [ ] Image optimization and compression
+
+### 13. Analytics and Reporting
+- [ ] User activity tracking
+- [ ] Booking analytics
+- [ ] Revenue reporting
+- [ ] Popular venues and events tracking
+
+### 14. Testing
+- [ ] Unit tests for all API endpoints
+- [ ] Integration tests for booking flow
+- [ ] Load testing for high traffic scenarios
+- [ ] Security testing
+
+### 15. Deployment and DevOps
+- [ ] Set up production database
+- [ ] Configure environment variables
+- [ ] Set up CI/CD pipeline
+- [ ] Configure monitoring and logging
+- [ ] Set up backup and disaster recovery
+
+## Technology Stack Recommendations
+- **Backend Framework**: Node.js with Express.js or Python with Django/FastAPI
+- **Database**: Firebase Firestore or MongoDB
+- **Authentication**: Firebase Auth
+- **File Storage**: Firebase Storage or AWS S3
+- **Payment**: Stripe or Razorpay
+- **Email Service**: SendGrid or AWS SES
+- **SMS Service**: Twilio
+- **Hosting**: Firebase Hosting, Vercel, or AWS
+- **Monitoring**: Firebase Analytics, Google Analytics
+
+## Priority Order
+1. Authentication system setup
+2. Basic user management
+3. Event types and venue management
+4. Search and booking system
+5. Payment integration
+6. Vendor management
+7. Admin panel
+8. Advanced features (notifications, analytics)
