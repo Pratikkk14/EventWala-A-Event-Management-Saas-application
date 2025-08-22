@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { 
-  signInWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
   signOut,
   User,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail,
+  confirmPasswordReset
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
@@ -44,6 +46,19 @@ export const useAuth = () => {
     return signOut(auth);
   };
 
+  const sendPasswordReset = async (email: string) => {
+    return sendPasswordResetEmail(auth, email);
+  };
+
+  const confirmPasswordResetCode = async (code: string, newPassword: string) => {
+    return confirmPasswordReset(auth, code, newPassword);
+  };
+
+  const getIdToken = async () => {
+    if (!auth.currentUser) return null;
+    return auth.currentUser.getIdToken();
+  };
+
   return {
     user,
     loading,
@@ -51,5 +66,6 @@ export const useAuth = () => {
     signUp,
     signInWithGoogle,
     logout
+  , sendPasswordReset, confirmPasswordResetCode, getIdToken
   };
 };

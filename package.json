@@ -4,10 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "dev": "cd Frontend && vite",
+    "build": "cd Frontend && vite build",
+    "preview": "cd Frontend && vite preview"
   },
   "dependencies": {
     "@types/three": "^0.179.0",

@@ -1,0 +1,209 @@
+Backend Development Tasks for EventWala (v2.0)
+
+Core (project & infra)
+- Create backend repo structure (src/, routes/, controllers/, services/, models/, jobs/, tests/)
+- Add env management (.env.example) and secrets handling
+- Choose DB: Firestore or Postgres/Mongo + ORM (TypeORM/Prisma/Mongoose)
+- Add logging (winston/pino) and error middleware
+- Setup CI pipeline (lint/tests/build) and CD (Heroku/Vercel/Azure/GCP)
+- Setup local dev scripts and Postman/Insomnia collection
+
+Authentication & Authorization
+- Integrate Firebase Auth + Admin SDK OR implement JWT auth (access + refresh tokens)
+- Endpoints:
+  - POST /api/auth/register — create account (email/password)
+  - POST /api/auth/login — returns access token (+ refresh token)
+  - POST /api/auth/refresh — refresh access token (if using JWT)
+  - POST /api/auth/logout — revoke refresh token / sign-out
+  - POST /api/auth/google — sign-in with Google (token exchange)
+  - POST /api/auth/forgot-password — send reset link
+  - POST /api/auth/reset-password — reset password
+- Role management: customer, vendor, admin (role claims in token)
+- Middleware: requireAuth, requireRole
+
+Users & Profiles
+- Create users collection/table with fields from SRS (uid, email, names, role, profileImage, phone, address, timestamps)
+- Endpoints:
+  - GET /api/auth/profile — get current user
+  - PUT /api/auth/profile — update profile
+  - PUT /api/auth/profile/password — change password
+- On first sign-in create profile document (server-side via Firebase Admin or user creation hook)
+
+Event Types
+- Create EventTypes collection and seeder for default types (w/ icons & images)
+- Endpoints:
+  - GET /api/events/types — get all event types (public)
+  - POST /api/events/types — create (admin)
+  - PUT /api/events/types/:id — update (admin)
+  - DELETE /api/events/types/:id — delete (admin)
+
+Venue Management
+- Venues schema (id, name, description, images, location {lat,lng,address}, capacity, amenities, pricing, availability, eventTypes, vendorId, rating, reviews, status, timestamps)
+- Endpoints:
+  - POST /api/venues — add venue (vendor)
+  - GET /api/venues — list with filters/pagination
+  - GET /api/venues/:id — venue details
+  - PUT /api/venues/:id — update (owner or admin)
+  - DELETE /api/venues/:id — delete (owner or admin)
+  - GET /api/vendors/:vendorId/venues — vendor venues
+
+Bookings & Scheduling
+- Bookings schema (id, userId, venueId, eventType, eventDate, startTime, endTime, guestCount, totalAmount, status, paymentStatus, contactInfo, specialRequests, timestamps)
+- Availability checking logic (block times on booking confirmed)
+- Endpoints:
+  - POST /api/bookings — create booking (auth)
+  - GET /api/bookings/:id — get booking
+  - GET /api/bookings/user/:userId — user bookings
+  - PUT /api/bookings/:id — update booking (cancellable rules)
+  - DELETE /api/bookings/:id — cancel booking
+  - GET /api/bookings/venue/:venueId — venue bookings (vendor/admin)
+- Background jobs for status transitions, reminders, cancellations
+
+Payments & Webhooks
+- Integrate Stripe or Razorpay
+- Payment flow endpoints:
+  - POST /api/payments/create-intent — create payment intent / order
+  - POST /api/payments/confirm — confirm payment (optional)
+  - POST /api/payments/webhook — webhook handler (payment succeeded/refunded)
+  - POST /api/refunds — initiate refund (admin/vendor)
+- Secure webhooks, idempotency keys
+- Mark booking paymentStatus accordingly
+
+Search, Filters & Sorting
+- Implement venue search by:
+  - text (name/description)
+  - location radius (geo queries / PostGIS)
+  - filters: eventType, capacity, priceRange, amenities, rating
+  - sorting: price, rating, distance
+- Endpoint examples:
+  - GET /api/venues/search?query=&lat=&lng=&radius=&eventType=&minCapacity=&maxPrice=&sort=price_asc&page=1&limit=20
+
+Reviews & Ratings
+- Reviews schema (id, userId, venueId, rating, comment, createdAt)
+- Endpoints:
+  - POST /api/venues/:id/reviews — add review
+  - GET /api/venues/:id/reviews — list reviews
+  - GET /api/users/:id/reviews — user reviews
+- Update venue average rating on new review
+
+Vendor Management
+- Vendors schema (id, userId, businessName, businessType, description, portfolio, contactInfo, verificationStatus)
+- Endpoints:
+  - POST /api/vendors/register — register vendor (creates vendor profile)
+  - GET /api/vendors/profile — vendor profile (auth)
+  - PUT /api/vendors/profile — update vendor profile
+  - GET /api/vendors — list vendors
+- Vendor verification workflow (admin approval)
+
+File Uploads & Media
+- Integrate cloud storage (Firebase Storage, S3)
+- Endpoints:
+  - POST /api/uploads — signed URL or direct upload handling
+  - DELETE /api/uploads/:id — remove media
+- Image resizing & CDN usage for performance
+
+Notifications & Emails
+- Email provider (SendGrid/Mailgun) for:
+  - registration confirmation
+  - booking confirmation
+  - payment receipts
+  - reminders (2 days / 1 hour)
+- Push notifications + webhooks (optional)
+- Endpoints / jobs:
+  - POST /api/notifications/send — admin triggered (internal)
+  - Background scheduler for reminders
+
+Admin & Management
+- Admin dashboard endpoints:
+  - GET /api/admin/analytics — usage, revenue, bookings
+  - GET /api/admin/users — list/search users
+  - PUT /api/admin/users/:id/role — change role
+  - GET /api/admin/venues — manage venue status (approve/reject)
+- Audit logs for critical actions
+
+Security & Validation
+- Input validation (Joi/Zod)
+- Rate limiting, CORS, Helmet, CSP
+- Data sanitization & SQL injection prevention
+- Store sensitive keys in secrets manager
+- Encryption for sensitive data at rest if required
+
+Performance & Reliability
+- Pagination for list endpoints
+- Caching for heavy reads (Redis)
+- Implement retry & concurrency limits for external API calls
+- Background job queue (Bull/Agenda) for async tasks
+- Health checks & graceful shutdown
+
+Testing & QA
+- Unit tests for services/controllers
+- Integration tests for routes (supertest)
+- End-to-end booking/payment flows (staging)
+- Postman collection + example responses
+
+Monitoring & Observability
+- Error tracking (Sentry)
+- Metrics (Prometheus/Grafana) or hosted APM
+- Logging with correlation IDs
+
+Documentation & Dev UX
+- OpenAPI (Swagger) for all endpoints
+- API usage doc for frontend with sample requests/responses
+- Runbook for webhooks & failed payments
+- Seed script for development data
+
+Frontend <-> Backend API map (minimum required calls)
+- Auth
+  - POST /api/auth/login {email,password} => {accessToken, refreshToken, user}
+  - POST /api/auth/register {email,password,firstName,lastName} => {user}
+  - POST /api/auth/refresh {refreshToken} => {accessToken}
+  - GET /api/auth/profile => {user}
+  - PUT /api/auth/profile => {updatedUser}
+- Event Types
+  - GET /api/events/types => [event types]
+- Venues / Search
+  - GET /api/venues/search?... => {items, total, page}
+  - GET /api/venues/:id => venueDetail
+  - POST /api/venues (vendor) => createdVenue
+  - PUT /api/venues/:id => updatedVenue
+- Bookings
+  - POST /api/bookings {bookingData} => createdBooking
+  - GET /api/bookings/user/:userId => [bookings]
+  - GET /api/bookings/:id => booking
+  - DELETE /api/bookings/:id => cancellationResult
+- Payments
+  - POST /api/payments/create-intent {bookingId, amount} => {clientSecret/orderId}
+  - POST /api/payments/webhook => (no frontend call; backend updates booking)
+- Reviews
+  - POST /api/venues/:id/reviews => {review}
+  - GET /api/venues/:id/reviews => [reviews]
+- Vendor flows
+  - POST /api/vendors/register => vendorProfile
+  - GET /api/vendors/profile => vendorProfile
+- Uploads
+  - POST /api/uploads => {url} or signed URL flow
+
+Minimum work to make a usable MVP
+- Auth (register/login + profile)
+- Event types endpt + seed
+- Venues CRUD with search & basic filters
+- Booking creation + availability check
+- Payment integration with webhook to mark paid bookings
+- File upload for venue images
+- Basic notifications (email booking confirmations)
+- Swagger & Postman collection for frontend
+
+Optional/Advanced (add later)
+- Dynamic availability calendar / calendar feed (iCal)
+- Recommendation engine / popular venues
+- Multi-currency & tax handling
+- Analytics dashboards (revenue, trends)
+- Two-factor auth (2FA)
+- GDPR tools (data export/delete)
+
+Quick implementation notes
+- If using Firebase Auth: keep tokens handled by Firebase on client and verify ID tokens on backend with Admin SDK. Still implement server-side profile collection and role claims.
+- If using custom JWT: implement /api/auth/refresh and store refresh tokens (DB/Redis) and revoke strategy.
+- Always secure webhooks and payment endpoints with signature verification.
+
+Generated: 2025-08-22

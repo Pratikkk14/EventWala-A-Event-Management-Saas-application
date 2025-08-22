@@ -20,6 +20,7 @@ const AuthForm: React.FC = () => {
   const [error, setError] = useState('');
   
   const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { sendPasswordReset } = useAuth();
   
   const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<FormData>();
   const watchPassword = watch("password");
@@ -118,6 +119,33 @@ const AuthForm: React.FC = () => {
                 </button>
               </p>
             </div>
+
+              {isLogin && (
+                <div className="text-right mt-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const email = (document.querySelector('input[type="email"]') as HTMLInputElement)?.value;
+                      if (!email) {
+                        setError('Please enter your email to reset password');
+                        return;
+                      }
+                      try {
+                        setLoading(true);
+                        await sendPasswordReset(email);
+                        setError('Password reset email sent. Check your inbox.');
+                      } catch (err: any) {
+                        setError(err.message || 'Failed to send reset email');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="text-sm text-purple-400 hover:text-purple-300"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
             {error && (
               <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
