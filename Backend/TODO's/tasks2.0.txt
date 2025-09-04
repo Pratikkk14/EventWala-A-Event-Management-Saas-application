@@ -1,8 +1,8 @@
 Backend Development Tasks for EventWala (v2.0)
 
 Core (project & infra)
-- Create backend repo structure (src/, routes/, controllers/, services/, models/, jobs/, tests/)
-- Add env management (.env.example) and secrets handling
+- Create backend repo structure (src/, routes/, controllers/, services/, models/, jobs/, tests/) - ✅
+- Add env management (.env.example) and secrets handling ✅
 - Choose DB: Firestore or Postgres/Mongo + ORM (TypeORM/Prisma/Mongoose)
 - Add logging (winston/pino) and error middleware
 - Setup CI pipeline (lint/tests/build) and CD (Heroku/Vercel/Azure/GCP)

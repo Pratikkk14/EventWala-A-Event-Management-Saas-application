@@ -1,3 +1,5 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Do not Comment above lines as the whole frontend will stop using tailwind css if these lines are commented */

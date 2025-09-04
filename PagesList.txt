@@ -1,0 +1,33 @@
+Customer-Facing Pages
+These are the pages that a customer (the person booking an event) would interact with after logging in.
+
+✅Events Discovery Page: This is the page you've already started. It shows different event types (e.g., Baby Shower, Birthday Party, Wedding) with options to explore them. You will need to build the detailed pages for each of these categories.
+
+✅Event Type Pages: For each event type (e.g., "Wedding"), you'll need a dedicated page. This page should list all the available vendors and venues that specialize in that type of event. It should have filtering options (by location, price, capacity, etc.) and a search bar to help customers find what they need.
+
+✅Vendor Profile Page: This page will display detailed information about a specific vendor, including their contact details, services offered, pricing, a gallery of their work, and customer reviews.
+
+✅Booking/Inquiry Page: A form-based page where a customer can submit a booking request or send an inquiry to a vendor. This needs to be a crucial part of the customer journey, as it's the main call-to-action.
+
+My Bookings Page: A centralized dashboard for the customer to view all their current, past, and pending bookings. They should be able to track the status of each booking, see upcoming events, and access invoices. This page would be an extension of the navigation item "My Bookings" you already have.
+
+My Guests Page: A page that allows the customer to manage their guest list, send invitations, and track RSVPs. This corresponds to the "My Guests" navigation item.
+
+
+
+
+
+Vendor-Facing Pages
+These are the pages that a vendor (the person providing venues and services) would use to manage their business on your platform.
+
+Vendor Dashboard: The page you've already built, which provides a high-level overview of revenue, orders, and reviews. This is the main landing page for the vendor.
+
+Vendor Orders Page: A list of all orders and inquiries for the vendor. They should be able to see details of each order and change the status (e.g., pending, completed, canceled). This corresponds to the "Orders" navigation item.
+
+Manage Deals/Packages Page: A page where vendors can create, edit, and manage the special deals and packages they offer. This would be a place to add images, descriptions, and pricing for their services. This corresponds to the "Deals" navigation item.
+
+Customers/Reviews Pages: Dedicated pages for the vendor to view their customer list and manage their reviews. They should be able to respond to reviews or report inappropriate content. This corresponds to the "Customers" and "Reviews" navigation items.
+
+Analytics Page: A more detailed version of the dashboard with more in-depth charts and reports to help vendors understand their business performance over time. This corresponds to the "Analytics" navigation item.
+
+Profile/Settings Page: A page where vendors can manage their profile information, upload new images, update their services, and change their account settings. This corresponds to the "Settings" navigation item.

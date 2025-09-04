@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, ArrowLeft, Mail, Lock, User, Chrome, Smartphone } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, Lock, User, Chrome } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import StarryBackground from './StarryBackground';
 

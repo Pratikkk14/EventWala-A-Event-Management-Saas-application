@@ -129,3 +129,14 @@ MVP priority (minimal set to complete first)
 Notes
 - Map each TODO to an issue in your tracker and tie to a small acceptance criteria (example: "POST /api/bookings should return 201 and mark slot reserved for 15 minutes").
 - If you want, I can scaffold an Express+TS project and add route skeletons for the MVP TODOs.
+
+
+
+
+import { auth } from '../config/firebase'; // adjust path as needed
+
+const user = auth.currentUser;
+if (user) {
+  const token = await user.getIdToken();
+  console.log(token); // This is the JWT you send to your backend
+}
