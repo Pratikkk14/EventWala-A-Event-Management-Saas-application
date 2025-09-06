@@ -212,6 +212,27 @@ const Dashboard: React.FC = () => {
     );
   };
 
+  const renderSidebarProfileImage = () => {
+    if (user?.photoURL) {
+      return (
+        <img
+          src={user.photoURL}
+          alt="User"
+          className="w-12 h-12 rounded-full object-cover"
+        />
+      );
+    }
+    return (
+      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center">
+        <span className="text-white text-xl font-bold">
+          {user?.displayName?.charAt(0).toUpperCase() ||
+            user?.email?.charAt(0).toUpperCase() ||
+            "U"}
+        </span>
+      </div>
+    );
+  };
+
   const offers = [
     { text: "Get 20% off your first booking!", color: "text-purple-300" },
     { text: "Refer a friend, get $50!", color: "text-purple-300" },
@@ -228,35 +249,44 @@ const Dashboard: React.FC = () => {
         ref={sidebarRef}
         onMouseEnter={() => setIsSidebarExpanded(true)}
         onMouseLeave={() => setIsSidebarExpanded(false)}
-        className={`bg-gradient-to-b from-slate-800/80 to-purple-900/80 backdrop-blur-xl border-r border-purple-500/20 flex-col pt-8 pb-4 px-6 transition-all duration-300 ease-in-out ${
+        className={`bg-slate-800/80 backdrop-blur-3xl border border-white/10 rounded-3xl m-4 transition-all duration-300 ease-in-out flex flex-col h-screen ${
           isSidebarExpanded ? "w-64" : "w-24"
         }`}
       >
-        <div className="flex flex-col items-center">
-          {/* Logo and Name */}
+        <div className="flex flex-col items-center p-4">
+          {/* Menu Toggle Button */}
+          <button
+            onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+            className="p-2 rounded-lg text-white hover:bg-purple-500/20 mb-6"
+          >
+            {isSidebarExpanded ? (
+              <X className="w-6 h-6 transition-transform duration-300" />
+            ) : (
+              <Menu className="w-6 h-6 transition-transform duration-300" />
+            )}
+          </button>
+
+          {/* User Info Preview (in expanded sidebar) */}
           <div
-            className={`flex items-center mb-10 transition-all duration-300 ${
-              isSidebarExpanded ? "w-full" : "w-10"
+            className={`flex items-center gap-4 mb-8 transition-opacity duration-300 ${
+              isSidebarExpanded ? "opacity-100" : "opacity-0 hidden"
             }`}
           >
-            <div
-              className={`w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                isSidebarExpanded ? "mr-3" : "mr-0"
-              }`}
-            >
-              <span className="text-white text-xl font-bold">E</span>
+            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center">
+              {renderSidebarProfileImage()}
             </div>
-            <h1
-              className={`text-2xl font-bold text-white tracking-wider transition-opacity duration-300 ${
-                isSidebarExpanded ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              Eventwala
-            </h1>
+            <div>
+              <div className="text-white font-medium text-lg line-clamp-1">
+                {user?.displayName || "Pratik Pujari"}
+              </div>
+              <div className="text-purple-300 text-xs line-clamp-1">
+                {user?.email || "pratik146971@gmail.com"}
+              </div>
+            </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex flex-col gap-4 w-full mb-10">
+          <nav className="flex flex-col gap-4 w-full mb-10 px-3">
             <button className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group">
               <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <span
@@ -318,14 +348,14 @@ const Dashboard: React.FC = () => {
       <main className="flex-1 bg-gradient-to-br from-slate-800/60 to-purple-900/60 backdrop-blur-xl p-8 md:p-12 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
+          {/* Logo and Name on Header */}
           <div className="flex items-center">
-            {/* Logo and Name on Header */}
-            <div className="flex items-center mb-3 md:hidden">
-              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                <span className="text-white text-xl font-bold">E</span>
-              </div>
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center mr-2">
+              <span className="text-white text-lg font-bold">E</span>
             </div>
-            {/* Placeholder for the main title, to be handled by the typing animation */}
+            <h1 className="text-xl font-bold text-white tracking-wider">
+              Eventwala
+            </h1>
           </div>
 
           {/* User Profile Dropdown */}
@@ -375,30 +405,29 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Animated Text and Search Section */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
-          <div className="relative w-full text-center">
-            <h2 className="text-5xl md:text-6xl font-extrabold text-white">
-              <span className="relative">
-                {typedText}
-                <span className="absolute right-0 bottom-0 border-r-4 border-white animate-blink h-full"></span>
-              </span>
-            </h2>
-            <p className="text-purple-200 text-lg mt-4">
-              Select an event type to start planning your special day.
-            </p>
-          </div>
+        {/* Animated Text Section */}
+        <div className="relative w-full text-center mb-8">
+          <h2 className="text-5xl md:text-6xl font-extrabold text-white">
+            <span className="relative">
+              {typedText}
+              <span className="absolute right-0 bottom-0 border-r-4 border-white animate-blink h-full"></span>
+            </span>
+          </h2>
+          <p className="text-purple-200 text-lg mt-4">
+            Select an event type to start planning your special day.
+          </p>
+        </div>
 
-          <div className="relative w-full md:flex-1 md:w-auto">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-300 w-5 h-5" />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 pr-6 py-3 w-full bg-slate-800/50 border border-purple-500/30 rounded-xl text-white placeholder-purple-300 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
-              placeholder="Search for venues or services..."
-            />
-          </div>
+        {/* Search Bar */}
+        <div className="relative mb-12">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-300 w-5 h-5" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-12 pr-6 py-3 w-full bg-slate-800/50 border border-purple-500/30 rounded-xl text-white placeholder-purple-300 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
+            placeholder="Search for venues or services..."
+          />
         </div>
 
         {/* Special Offers (Rolling Banner) */}
