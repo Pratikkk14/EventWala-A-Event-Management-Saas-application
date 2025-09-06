@@ -21,6 +21,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 
+import defaultAvatar from "../images/UserAvatrs/Male.png";
+
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -199,6 +201,14 @@ const Dashboard: React.FC = () => {
           className="w-8 h-8 rounded-full object-cover"
         />
       );
+    } else {
+      return (
+        <img
+          src={defaultAvatar}
+          alt="User"
+          className="w-8 h-8 rounded-full object-cover"
+        />
+      );
     }
     // TODO: Add custom placeholder image here
     return (
@@ -221,16 +231,24 @@ const Dashboard: React.FC = () => {
           className="w-12 h-12 rounded-full object-cover"
         />
       );
+    } else { 
+      return (
+        <img
+          src={defaultAvatar}
+          alt="User"
+          className="w-12 h-12 rounded-full object-cover"
+        />
+      );
     }
-    return (
-      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center">
-        <span className="text-white text-xl font-bold">
-          {user?.displayName?.charAt(0).toUpperCase() ||
-            user?.email?.charAt(0).toUpperCase() ||
-            "U"}
-        </span>
-      </div>
-    );
+    // return (
+    //   <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center">
+    //     <span className="text-white text-xl font-bold">
+    //       {user?.displayName?.charAt(0).toUpperCase() ||
+    //         user?.email?.charAt(0).toUpperCase() ||
+    //         "U"}
+    //     </span>
+    //   </div>
+    // );
   };
 
   const offers = [
