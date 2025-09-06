@@ -1,11 +1,10 @@
 const express = require('express');
-const dotenv = require('dotenv');
+require('dotenv').config();
 
-const connectToMongo = require('./Services/MongoDB_Connection');
+const connectToMongo = require('./DB/MongoDB_Connection');
 
 const app = express();
-const PORT = 1000;
-dotenv.config();
+const PORT = process.env.PORT || 1000;
 
 connectToMongo(process.env.MONGODB_URI);
 

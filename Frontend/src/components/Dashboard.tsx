@@ -21,7 +21,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-import defaultAvatar from "../images/UserAvatrs/Male.png";
+import defaultAvatar from "../images/UserAvatars/Male.png";
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -42,6 +42,24 @@ const Dashboard: React.FC = () => {
   const deletingSpeed = 50;
   const delayBetweenWords = 1500;
 
+  const marqueeStyle: React.CSSProperties = {
+    animation: "marquee 20s linear infinite",
+    paddingRight: "50px",
+  };
+  const styleTag = (
+    <style>
+      {`
+      @keyframes marquee {
+        0% {
+          transform: translateX(0);
+        }
+        100% {
+          transform: translateX(-50%);
+        }
+      }
+    `}
+    </style>
+  );
   const userMenuRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -252,11 +270,25 @@ const Dashboard: React.FC = () => {
   };
 
   const offers = [
-    { text: "Get 20% off your first booking!", color: "text-purple-300" },
-    { text: "Refer a friend, get $50!", color: "text-purple-300" },
+    {
+      text: "Get 20% off your first booking!",
+      color: "text-purple-300",
+    },
+    {
+      text: "Refer a friend, get 30% off",
+      color: "text-purple-300"
+    },
     {
       text: "Host a party of 500+ and get a free DJ!",
       color: "text-purple-300",
+    },
+    {
+      text: "Book a birthday party venue and get a free cake from our side as a gift!",
+      color: "text-purple-300",
+    },
+    {
+      text: "Early bird discounts available for limited Venues!",
+      color: "text-purple-300"
     },
   ];
 
@@ -363,7 +395,7 @@ const Dashboard: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 bg-gradient-to-br from-slate-800/60 to-purple-900/60 backdrop-blur-xl p-8 md:p-12 flex flex-col">
+      <main className="flex-1 bg-gradient-to-br from-slate-800/60 to-purple-900/60 backdrop-blur-xl p-8 md:p-12 flex flex-col overflow-x-hidden">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           {/* Logo and Name on Header */}
@@ -449,12 +481,29 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Special Offers (Rolling Banner) */}
-        <div className="w-full overflow-hidden relative h-12 rounded-xl bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border border-purple-500/30 backdrop-blur-sm shadow-inner-xl flex items-center mb-12">
-          <div className="flex animate-scroll-text whitespace-nowrap">
+        <div className="w-full overflow-hidden relative h-12 rounded-xl bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border border-purple-500/30 backdrop-blur-sm shadow-inner-xl mb-12">
+          {styleTag}
+          <div
+            className="flex whitespace-nowrap min-w-full"
+            style={{
+              ...marqueeStyle,
+              width: "max-content", // This ensures content width
+            }}
+          >
+            {/* First set of offers */}
             {offers.map((offer, index) => (
               <span
-                key={index}
-                className={`px-8 font-semibold text-lg ${offer.color}`}
+                key={`first-${index}`}
+                className={`px-8 font-semibold text-lg inline-block ${offer.color}`}
+              >
+                {offer.text}
+              </span>
+            ))}
+            {/* Duplicate set for seamless loop */}
+            {offers.map((offer, index) => (
+              <span
+                key={`second-${index}`}
+                className={`px-8 font-semibold text-lg inline-block ${offer.color}`}
               >
                 {offer.text}
               </span>
