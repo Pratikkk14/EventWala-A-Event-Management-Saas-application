@@ -64,3 +64,6 @@ EventWala-A-Event-Management-Saas-application/
 │               └── Male.png
 │
 ├── README.md
+├── nodemod
+├── package.json
+├── .gitignore
