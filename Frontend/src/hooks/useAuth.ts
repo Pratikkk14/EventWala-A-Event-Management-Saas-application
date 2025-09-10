@@ -30,16 +30,51 @@ export const useAuth = () => {
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(result.user, {
-      displayName: `${firstName} ${lastName}`
-    });
-    return result;
+    try {
+      // 1. Create Firebase user
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+
+      // 2. Update Firebase profile
+      await updateProfile(result.user, {
+        displayName: `${firstName} ${lastName}`,
+      });
+
+      // 3. Create MongoDB user
+      await createMongoDBUser({
+        uid: result.user.uid,
+        email,
+        firstName,
+        lastName,
+      });
+
+      return result;
+    } catch (error) {
+      // If MongoDB creation fails, delete Firebase user
+      if (auth.currentUser) {
+        await auth.currentUser.delete();
+      }
+      throw error;
+    }
   };
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider);
+    try {
+      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      const user = result.user;
+      
+      // Create MongoDB user for Google sign-in
+      const names = user.displayName?.split(' ') || ['', ''];
+      await createMongoDBUser({
+        uid: user.uid,
+        email: user.email || '',
+        firstName: names[0],
+        lastName: names[1] || '',
+      });
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const logout = async () => {
@@ -57,6 +92,27 @@ export const useAuth = () => {
   const getIdToken = async () => {
     if (!auth.currentUser) return null;
     return auth.currentUser.getIdToken();
+  };
+
+  const createMongoDBUser = async (userData:
+    {
+      uid: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    }) => { 
+    const response = await fetch("/api/DB_Routes/createuser", {
+      method: "POST",
+      headers: {
+      "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to create user in MongoDB");
+    }
+
+    return response.json();
   };
 
   return {
