@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import defaultAvatar from "../images/UserAvatars/Male.png";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -31,6 +32,7 @@ const Dashboard: React.FC = () => {
   const [typedText, setTypedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [textIndex, setTextIndex] = useState(0);
+  const navigate = useNavigate();
 
   const textsToAnimate = [
     "Your Perfect Event Awaits",
@@ -435,10 +437,16 @@ const Dashboard: React.FC = () => {
                     {user?.email}
                   </div>
                 </div>
-                <button className="flex items-center w-full px-4 py-2 text-white hover:bg-purple-600/30 transition-colors">
-                  <User className="w-4 h-4 mr-2" />
-                  <span>Profile</span>
-                </button>
+                  <button
+                    className="flex items-center w-full px-4 py-2 text-white hover:bg-purple-600/30 transition-colors"
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      navigate("/profile");
+                    }}
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    <span>Profile</span>
+                  </button>
                 <button className="flex items-center w-full px-4 py-2 text-white hover:bg-purple-600/30 transition-colors">
                   <User className="w-4 h-4 mr-2" />
                   <span>Settings</span>

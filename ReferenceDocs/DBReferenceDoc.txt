@@ -1,0 +1,97 @@
+USERS:
+User Model Reference Summary
+Purpose:
+Represents a user in the EventWala SaaS platform, supporting attendees, vendors, and admins.
+
+Fields Overview
+Basic Info
+
+uid (String, unique, required): User's unique identifier (e.g., from Auth).
+email (String, unique, required): User's email.
+Profile Information
+
+firstName (String, required): User's first name.
+lastName (String, required): User's last name.
+phoneNumber (String): Contact phone, validated for format.
+Additional Details
+
+dateOfBirth (Date): User's date of birth.
+gender (String: 'male'|'female'|'other'|'prefer-not-to-say'): Gender.
+avatar (Buffer + contentType): Profile image (binary, max 200KB).
+Address
+
+address: Object with street, city, state, country, postalCode.
+Preferences
+
+preferences: Object with eventNotifications, marketingEmails, language.
+Role & Status
+
+role (String: 'user'|'vendor'|'admin'): User's role.
+isVerified (Boolean): Email/account verification status.
+accountStatus (String: 'active'|'suspended'|'deactivated'): Account state.
+accountType (String: 'free'|'premium'|'enterprise'): Subscription type.
+Activity Tracking
+
+lastLogin (Date): Last login timestamp.
+createdAt, updatedAt (Date): Timestamps.
+Social Links
+
+socialProfiles: Object with facebook, twitter, instagram, linkedin.
+Event History
+
+eventsHosted (Array of ObjectId ref: Event): Events hosted by the user.
+eventsAttended (Array of ObjectId ref: Event): Events attended.
+bookmarks (Array of ObjectId ref: Venue): Bookmarked venues.
+Payment & Billing
+
+defaultPaymentMethod (String): Default payment method.
+billingAddress: Object with street, city, state, country, postalCode.
+Notes
+Supports all user types: attendee, vendor, admin.
+Avatar is stored as binary data (Buffer); consider using URLs for scalability.
+Relationships: references to Event and Venue models.
+Includes pre-save middleware to update
+
+
+VENDORS
+Purpose:
+Represents a vendor in the EventWala SaaS platform, supporting venue providers, lateral/third-party service providers, and private event organizers.
+
+Fields Overview
+Basic Info
+
+uid (String, unique, required): Vendor's unique identifier (e.g., from Auth).
+email (String, unique, required): Vendor's email.
+businessName (String, required): Name of the vendor's business.
+contactPerson (String, required): Main contact person.
+phoneNumber (String): Contact phone.
+website (String): Business website.
+logo (Buffer + contentType): Business logo image.
+Address
+
+address: Object with street, city, state, country, postalCode.
+Service Options
+
+providesVenue (Boolean): If vendor provides a venue.
+venueDetails (ObjectId ref: Venue): Linked venue document.
+venuePhotos (Array of Buffer): Photos of the venue (stored as binary data).
+vendorType (String: 'venue'|'lateral'|'both'): Type of vendor.
+providesLateralServices (Boolean): If vendor provides lateral/other services.
+lateralServices (Array): List of services with name, description, price, isAddonToVenue.
+Private Events
+
+hostsPrivateEvents (Boolean): If vendor hosts private events.
+privateEvents (Array of ObjectId ref: Event): Events hosted by the vendor.
+Ratings & Reviews
+
+ratings (Array): User reviews with user, rating, review, createdAt.
+Account Status
+
+isVerified (Boolean): Vendor verification status.
+accountStatus (String: 'active'|'suspended'|'deactivated'): Account state.
+createdAt, updatedAt (Date): Timestamps.
+Notes
+Supports all vendor types: venue owners, service providers, and event organizers.
+Venue photos are stored as binary data (Buffer); consider using URLs for scalability.
+Relationships: references to Venue, Event, and User models.
+Includes pre-save middleware to update updatedAt.
