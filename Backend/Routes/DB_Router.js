@@ -3,7 +3,10 @@ const router = express.Router();
 
 const { createUser, updateUser, upload } = require("../Controller/DB");
 const { profileController, isUserInDB } = require("../Controller/Profile");
+
 const authenticate = require("../Middleware/authentication");
+
+
 
 router.post("/createuser", createUser);
 

@@ -122,6 +122,18 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // [
+  //   "Baby Shower",
+  //   "Birthday Party",
+  //   "Engagement",
+  //   "Wedding",
+  //   "Housewarming",
+  //   "Anniversary",
+  //   "Corporate Event",
+  //   "Farewell",
+  //   "Conference",
+  //   "Workshop"
+  // ]
   const eventTypes = [
     {
       id: "baby-shower",

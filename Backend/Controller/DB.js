@@ -39,8 +39,10 @@ const updateUser = async (req, res) => {
 
     // Only allow specific fields to be updated
     if (req.body.userData) {
+
       const parsed = JSON.parse(req.body.userData);
       console.log("Parsed userData:", parsed);
+
       // Whitelist allowed fields
       const allowedFields = [
         "email",
@@ -60,6 +62,7 @@ const updateUser = async (req, res) => {
         "eventsHosted",
         "eventsAttended",
         "bookmarks",
+        "guests",
         "defaultPaymentMethod",
       ];
       allowedFields.forEach((field) => {

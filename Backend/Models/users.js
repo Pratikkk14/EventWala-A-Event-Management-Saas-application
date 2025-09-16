@@ -1,5 +1,14 @@
 const mongoose = require("mongoose");
 
+const guestSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  phone: String,
+  invitedAt: { type: Date, default: Date.now },
+  // Add more fields as needed
+}, { _id: false }); // No need for _id for temp guests
+
+
 const userSchema = new mongoose.Schema(
   {
     // Basic Info (from Firebase Auth)
@@ -135,6 +144,8 @@ const userSchema = new mongoose.Schema(
         ref: "Venue",
       },
     ],
+
+    guests: [guestSchema], // Embedded array of guests
 
     // Payment & Billing
     defaultPaymentMethod: String,

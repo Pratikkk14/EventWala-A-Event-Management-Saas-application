@@ -2,7 +2,7 @@ const express = require('express');
 require('dotenv').config();
 const connectToMongo = require('./DB/MongoDB_Connection');
 const DB_Router = require("./Routes/DB_Router");
-// const profileRouter = require('./Routes/profile_Router');
+const explore_events = require('./Routes/explore-events');
 const cors = require('cors');
 
 const app = express();
@@ -16,7 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 
 app.use("/api/DB_Routes", DB_Router);
-// app.use("/api/profile", profileRouter);
+app.use("/api/explore-events", explore_events);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

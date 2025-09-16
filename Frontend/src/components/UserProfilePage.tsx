@@ -13,7 +13,6 @@ import {
   Users,
   Briefcase,
   BarChart2,
-  DollarSign,
   Clock,
   Bookmark,
   Globe,
@@ -31,7 +30,7 @@ type AvatarType = {
   contentType: string;
 } | undefined;
 
-// Initial profile data
+
 const initialProfileData = {
   name: "",
   email: "",
@@ -525,30 +524,55 @@ export default function UserProfilePage() {
         const transformedData = {
           name: `${data.firstName} ${data.lastName}`,
           email: data.email,
-          phone: data.phoneNumber,
-          address: data.address?.street,
+          phone: data.phone,
+          address: data.address
+            ? [
+                data.address.street,
+                data.address.city,
+                data.address.state,
+                data.address.country,
+                data.address.postalCode,
+              ]
+                .filter(Boolean)
+                .join(", ")
+            : "",
           socialProfiles: data.socialProfiles || {},
           personalDetails: {
-            dob: data.dateOfBirth,
-            gender: data.gender,
+            dob: data.dateOfBirth ?? "",
+            gender: data.gender ?? "",
           },
-          preferences: data.preferences || {},
+          preferences: {
+            notifications: data.preferences?.eventNotifications ?? false,
+            language: data.preferences?.language ?? "",
+            marketing: data.preferences?.marketingEmails ?? false,
+          },
           accountManagement: {
-            role: data.role,
-            status: data.accountStatus,
+            role: data.role ?? "",
+            status: data.accountStatus ?? "",
             verification: data.isVerified ? "Verified" : "Unverified",
           },
           activity: {
-            lastLogin: data.lastLogin,
-            createdAt: data.createdAt,
-            updatedAt: data.updatedAt,
-            hostedEvents: data.eventsHosted?.length || 0,
-            attendedEvents: data.eventsAttended?.length || 0,
-            bookmarkedVenues: data.bookmarks?.length || 0,
+            lastLogin: data.lastLogin ?? "",
+            createdAt: data.createdAt ?? "",
+            updatedAt: data.updatedAt ?? "",
+            hostedEvents: data.eventsHosted?.length ?? 0,
+            attendedEvents: data.eventsAttended?.length ?? 0,
+            bookmarkedVenues: data.bookmarks?.length ?? 0,
+            guests : data.guests ?? 0,
           },
           payment: {
-            defaultPaymentMethod: data.defaultPaymentMethod,
-            billingAddress: data.billingAddress?.street,
+            defaultPaymentMethod: data.defaultPaymentMethod ?? "",
+            billingAddress: data.billingAddress
+              ? [
+                  data.billingAddress.street,
+                  data.billingAddress.city,
+                  data.billingAddress.state,
+                  data.billingAddress.country,
+                  data.billingAddress.postalCode,
+                ]
+                  .filter(Boolean)
+                  .join(", ")
+              : "",
           },
           avatar: data.avatar,
         };
@@ -558,10 +582,16 @@ export default function UserProfilePage() {
 
         // If there's an avatar, create the preview
         if (data.avatar?.data) {
-          const imageUrl = `data:${
-            data.avatar.contentType
-          };base64,${arrayBufferToBase64(data.avatar.data)}`;
-          setProfileImagePreview(imageUrl);
+          try {
+            const imageUrl = `data:${data.avatar.contentType};base64,${arrayBufferToBase64(data.avatar.data)}`;
+            setProfileImagePreview(imageUrl);
+          } catch (err) {
+            setProfileImagePreview("/images/UserAvatars/Male.png");
+            toast.error("Failed to load profile picture, using fallback image.");
+          }
+        } else {
+          setProfileImagePreview("/images/UserAvatars/Male.png");
+          toast("No profile picture found, using fallback image.", { icon: "ℹ️" });
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -793,8 +823,9 @@ export default function UserProfilePage() {
                   alt="Profile"
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).onerror = null;
-                    (e.target as HTMLImageElement).src = ""; // Add a default fallback image URL here if needed
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null; // Prevent infinite loop
+                    target.src = "/images/UserAvatars/Male.png"; // Set a valid fallback image
                     console.log("Error loading profile image");
                   }}
                 />
@@ -846,11 +877,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
   }
   return window.btoa(binary);
 }
-
+// Returns the avatar image URL or a fallback if not available
 const getImageSource = (
   profileData: ProfileData,
   profileImagePreview: string | null
-): string | null => {
+): string => {
   if (profileImagePreview) {
     return profileImagePreview;
   }
@@ -859,5 +890,6 @@ const getImageSource = (
       profileData.avatar.data
     )}`;
   }
-  return null;
+  // fallback image
+  return "/images/UserAvatars/Male.png";
 };
