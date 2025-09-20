@@ -1,125 +1,105 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { EventTypeContext } from "../context/EventTypeContext";
+// import ImageSlider from "./ImageSlider";
+import { useParams } from "react-router-dom";
+
+
+
+// TypeScript interfaces for Venue and Vendor
+interface Review {
+  user: { name?: string } | string;
+  rating: number;
+  comment: string;
+  createdAt?: string;
+}
+
+interface Offer {
+  _id?: string;
+  title: string;
+  description: string;
+  expires?: string;
+}
+
+interface Venue {
+  name: string;
+  address?: {
+    addressLine1?: string;
+    addressLine2?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    pincode?: string;
+  };
+  description?: string;
+  photos?: Array<{ url?: string; fileId?: string }>;
+  capacity?: number;
+  amenities?: string[];
+  venuePrices?: Array<{ eventType: string; price: number }>;
+  vendorReview?: Review[];
+  offers?: Offer[];
+}
+
+interface Vendor {
+  businessName?: string;
+  contactPerson?: string;
+  email?: string;
+  phoneNumber?: string;
+  vendorDescription?: string;
+  // logoUrl?: string;
+}
 
 const VenueVendorProfile = () => {
-  const [currentView, setCurrentView] = useState("reviews");
-  const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
-  const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
+  // Removed unused currentView and setCurrentView
+  const [currentReviewIndex, setCurrentReviewIndex] = useState<number>(0);
+  const [currentOfferIndex, setCurrentOfferIndex] = useState<number>(0);
+  const [venue, setVenue] = useState<Venue | null>(null);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // This hardcoded data simulates what you would fetch from your backend API
-  const venueAndVendorData = {
-    venue: {
-      name: "The Grand Ballroom",
-      location: "Mumbai, India",
-      description:
-        "A luxurious and spacious venue perfect for large-scale events, from lavish weddings to corporate galas. Our elegant chandeliers, high ceilings, and customizable lighting create a magical atmosphere. We offer both indoor and outdoor spaces to suit any event size and style.",
-      images: [
-        "https://placehold.co/1200x600/1E1D2D/7F34C5?text=Grand+Ballroom+1",
-        "https://placehold.co/1200x600/1E1D2D/7F34C5?text=Grand+Ballroom+2",
-        "https://placehold.co/1200x600/1E1D2D/7F34C5?text=Grand+Ballroom+3",
-      ],
-      amenities: [
-        "Air-Conditioned",
-        "Wi-Fi",
-        "Parking",
-        "Sound System",
-        "Projector",
-      ],
-      capacity: {
-        min: 100,
-        max: 1000,
-      },
-      price: "$10,000 - $25,000 per day",
-    },
-    vendor: {
-      name: "EventWala Co.",
-      profileImage: "https://i.pravatar.cc/150?u=vendor1",
-      bio: "With over 15 years of experience in event management, EventWala Co. is your trusted partner for flawless event execution. We specialize in transforming your vision into reality, handling everything from venue setup to on-site coordination.",
-      contact: {
-        phone: "+91 98765 43210",
-        email: "info@eventwala.com",
-      },
-      services: [
-        "Event Planning & Coordination",
-        "Venue Decoration & Setup",
-        "Catering & Menu Design",
-        "Photography & Videography",
-        "Entertainment & DJ Services",
-      ],
-    },
-    reviews: [
-      {
-        id: 1,
-        user: "Ananya Sharma",
-        rating: 5,
-        comment:
-          "The venue was breathtaking! The service was exceptional and our wedding was a dream come true.",
-      },
-      {
-        id: 2,
-        user: "Rahul Desai",
-        rating: 4,
-        comment:
-          "Great location and staff. The food was excellent, though we had a small issue with the sound system.",
-      },
-      {
-        id: 3,
-        user: "Priya Singh",
-        rating: 5,
-        comment:
-          "Flawless execution of our corporate event. Highly professional and very well organized.",
-      },
-    ],
-    offers: [
-      {
-        id: 1,
-        title: "Wedding Package Special",
-        description:
-          "Book our premium wedding package and get a complimentary pre-wedding photoshoot.",
-        expires: "2025-12-31",
-      },
-      {
-        id: 2,
-        title: "Mid-week Discount",
-        description:
-          "Receive a 15% discount on all bookings for events held Monday through Thursday.",
-        expires: "2025-11-30",
-      },
-      {
-        id: 3,
-        title: "First-time Booker",
-        description:
-          "Get 10% off your total bill on your first booking with us!",
-        expires: "2025-10-15",
-      },
-      {
-        id: 4,
-        title: "Corporate Event Offer",
-        description:
-          "15% off on all corporate event bookings of more than 50 guests.",
-        expires: "2025-12-01",
-      },
-      {
-        id: 5,
-        title: "Early Bird Offer",
-        description:
-          "Book 3 months in advance and get a complimentary DJ service.",
-        expires: "2026-01-31",
-      },
-      {
-        id: 6,
-        title: "Holiday Season Special",
-        description:
-          "Enjoy a 20% discount on bookings for any event in December.",
-        expires: "2025-12-31",
-      },
-    ],
-  };
+  const { eventType } = React.useContext(EventTypeContext);
+  const { venueId } = useParams<{ venueId: string }>();
+
+  // Fetch venue and vendor data dynamically
+  useEffect(() => {
+    const fetchVenueAndVendor = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch venue by ID, populate vendor
+        const res = await fetch(`/api/explore-venues/${venueId}`);
+        if (!res.ok) throw new Error("Failed to fetch venue");
+        const venueData = await res.json();
+        setVenue(venueData);
+        // Fetch vendor if not populated
+        if (venueData.vendor && typeof venueData.vendor === "string") {
+          const vRes = await fetch(`/api/vendors/${venueData.vendor}`);
+          if (!vRes.ok) throw new Error("Failed to fetch vendor");
+          const vendorData = await vRes.json();
+          setVendor(vendorData);
+        } else {
+          setVendor(venueData.vendor);
+        }
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Unknown error");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (venueId) fetchVenueAndVendor();
+  }, [venueId]);
 
   // Group offers into sets of 3 for the slider
-  const offersInGroupsOfThree = [];
-  for (let i = 0; i < venueAndVendorData.offers.length; i += 3) {
-    offersInGroupsOfThree.push(venueAndVendorData.offers.slice(i, i + 3));
-  }
+  const offersInGroupsOfThree = venue?.offers
+    ? Array.from({ length: Math.ceil(venue.offers.length / 3) }, (_, i) =>
+        venue.offers!.slice(i * 3, i * 3 + 3)
+      )
+    : [];
 
   const [formData, setFormData] = useState({
     name: "",
@@ -131,12 +111,27 @@ const VenueVendorProfile = () => {
     details: "",
   });
 
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  interface BookingFormData {
+    name: string;
+    email: string;
+    phone: string;
+    eventType: string;
+    date: string;
+    guests: string;
+    details: string;
+  }
+
+  interface ChangeEventTarget {
+    name: keyof BookingFormData;
+    value: string;
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target as ChangeEventTarget;
     setFormData({ ...formData, [name]: value });
   };
 
@@ -152,7 +147,9 @@ const VenueVendorProfile = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  interface HandleSubmitEvent extends React.FormEvent<HTMLFormElement> {}
+
+  const handleSubmit = (e: HandleSubmitEvent) => {
     e.preventDefault();
     console.log("Booking request submitted:", formData);
     setMessage(
@@ -173,17 +170,20 @@ const VenueVendorProfile = () => {
   const isStep1Valid = formData.name && formData.email && formData.phone;
   const isStep2Valid = formData.eventType && formData.date && formData.guests;
 
+
   const handleNextReview = () => {
+    if (!venue?.vendorReview?.length) return;
     setCurrentReviewIndex(
-      (prevIndex) => (prevIndex + 1) % venueAndVendorData.reviews.length
+      (prevIndex) => (prevIndex + 1) % (venue.vendorReview ? venue.vendorReview.length : 1)
     );
   };
 
   const handlePreviousReview = () => {
+    if (!venue?.vendorReview?.length) return;
     setCurrentReviewIndex(
       (prevIndex) =>
-        (prevIndex - 1 + venueAndVendorData.reviews.length) %
-        venueAndVendorData.reviews.length
+        (prevIndex - 1 + (venue.vendorReview ? venue.vendorReview.length : 1)) %
+        (venue.vendorReview ? venue.vendorReview.length : 1)
     );
   };
 
@@ -314,277 +314,114 @@ const VenueVendorProfile = () => {
     }
   };
 
-  const currentReview = venueAndVendorData.reviews[currentReviewIndex];
-  const currentOfferGroup = offersInGroupsOfThree[currentOfferIndex];
+
+  // Get current review and offer group
+  const currentReview = venue?.vendorReview?.[currentReviewIndex] || null;
+  const currentOfferGroup = offersInGroupsOfThree[currentOfferIndex] || [];
+
+  // Helper: get price for current eventType
+  const getPriceForEventType = () => {
+    if (!venue?.venuePrices || !eventType) return null;
+    const priceObj = venue.venuePrices.find((p) => p.eventType === eventType);
+    return priceObj ? priceObj.price : null;
+  };
+
+  // Helper: get location string (see EventsPage.jsx for format)
+  const getLocationString = () => {
+    if (!venue?.address) return "";
+    const { addressLine1, addressLine2, street, city, state, country, pincode } = venue.address;
+    return [addressLine1, addressLine2, street, city, state, country, pincode]
+      .filter(Boolean)
+      .join(", ");
+  };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#151421] text-gray-200">Loading...</div>;
+  }
+  if (error) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#151421] text-red-400">{error}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#151421] text-gray-200 font-sans">
-      <style>
-        {`
-                @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=PT+Sans:wght@400;700&display=swap');
-                
-                body {
-                    font-family: 'PT Sans', sans-serif;
-                }
-                .font-poppins {
-                    font-family: 'Poppins', sans-serif;
-                }
-                .card {
-                    background-color: #1E1D2D;
-                    border-radius: 0.5rem;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
-                }
-                .btn-primary {
-                    background-color: #7f34c5;
-                    color: white;
-                    font-weight: 600;
-                    border-radius: 0.5rem;
-                    padding: 0.75rem 1.5rem;
-                    transition: background-color 0.3s ease;
-                }
-                .btn-primary:hover {
-                    background-color: #6a2aab;
-                }
-                input, textarea {
-                    background-color: #151421 !important;
-                    border-color: #3f3e50 !important;
-                    color: white !important;
-                }
-                input:focus, textarea:focus {
-                    border-color: #7f34c5 !important;
-                    box-shadow: 0 0 0 3px rgba(127, 52, 197, 0.5) !important;
-                }
-                .btn-disabled {
-                    background-color: #3f3e50 !important;
-                    cursor: not-allowed !important;
-                    color: #9ca3af !important;
-                }
-                `}
-      </style>
-
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        {/* Image Gallery Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 rounded-lg overflow-hidden shadow-lg">
-          {venueAndVendorData.venue.images.map((img, index) => (
-            <div key={index} className="w-full h-64 overflow-hidden">
-              <img
-                src={img}
-                alt={`${venueAndVendorData.venue.name} - ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg transform transition-transform duration-300 hover:scale-105"
-              />
-            </div>
-          ))}
+        {/* Venue Info */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">{venue?.name}</h1>
+          <div className="text-lg text-gray-400 mb-1">{getLocationString()}</div>
+          <div className="mb-2">{venue?.description}</div>
+          {/* Venue Images */}
+          <div className="flex gap-2 mb-2">
+            {venue?.photos?.map((img: { url?: string; fileId?: string }, i: number) => (
+              <img key={i} src={img.url || img.fileId || ""} alt="Venue" className="w-32 h-20 object-cover rounded" />
+            ))}
+          </div>
+          <div className="mb-1">Capacity: {venue?.capacity || "-"}</div>
+          <div className="mb-1">Amenities: {venue?.amenities?.join(", ")}</div>
+          <div className="mb-1">Price for {eventType}: {getPriceForEventType() ? `₹${getPriceForEventType()}` : "N/A"}</div>
         </div>
 
-        {/* Venue and Vendor Details Section */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Venue Details Card */}
-          <div className="card p-6 md:col-span-2">
-            <h1 className="text-3xl font-poppins font-bold text-gray-50">
-              {venueAndVendorData.venue.name}
-            </h1>
-            <p className="text-lg text-gray-400 mt-2">
-              {venueAndVendorData.venue.location}
-            </p>
-            <p className="text-xl font-semibold text-[#7f34c5] mt-4">
-              {venueAndVendorData.venue.price}
-            </p>
-            <p className="text-gray-300 mt-4 leading-relaxed">
-              {venueAndVendorData.venue.description}
-            </p>
-
-            <div className="mt-6">
-              <h3 className="text-xl font-poppins font-semibold text-gray-50">
-                Key Amenities
-              </h3>
-              <ul className="list-disc list-inside mt-2 text-gray-300 space-y-1">
-                {venueAndVendorData.venue.amenities.map((amenity, index) => (
-                  <li key={index}>{amenity}</li>
-                ))}
-              </ul>
-              <p className="mt-4 text-gray-300">
-                **Capacity:** {venueAndVendorData.venue.capacity.min} -{" "}
-                {venueAndVendorData.venue.capacity.max} guests
-              </p>
+        {/* Vendor Info */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-1">Vendor</h2>
+          <div className="flex items-center gap-4 mb-2">
+            {/* Vendor image (url string) */}
+            {/* <img src={vendor?.logoUrl || ""} alt="Vendor Logo" className="w-16 h-16 rounded-full object-cover" /> */}
+            <div>
+              <div className="font-bold">{vendor?.businessName}</div>
+              <div className="text-gray-400">Contact: {vendor?.contactPerson}</div>
+              <div className="text-gray-400">Email: {vendor?.email}</div>
+              <div className="text-gray-400">Phone: {vendor?.phoneNumber}</div>
             </div>
           </div>
+          <div className="mb-1">{vendor?.vendorDescription}</div>
+        </div>
 
-          {/* Combined Vendor & Offers Section */}
-          <div className="card p-6 md:col-span-1">
-            <div className="flex justify-around mb-4 border-b border-gray-600">
-              <button
-                onClick={() => setCurrentView("reviews")}
-                className={`text-lg font-semibold py-2 px-4 border-b-2 transition-colors duration-300 ${
-                  currentView === "reviews"
-                    ? "border-[#7f34c5] text-[#7f34c5]"
-                    : "border-transparent text-gray-400"
-                }`}
-              >
-                Vendor & Reviews
-              </button>
-              <button
-                onClick={() => setCurrentView("offers")}
-                className={`text-lg font-semibold py-2 px-4 border-b-2 transition-colors duration-300 ${
-                  currentView === "offers"
-                    ? "border-[#7f34c5] text-[#7f34c5]"
-                    : "border-transparent text-gray-400"
-                }`}
-              >
-                Offers
-              </button>
-            </div>
-
-            {currentView === "reviews" ? (
-              <>
-                <div className="flex flex-col items-center text-center">
-                  <img
-                    src={venueAndVendorData.vendor.profileImage}
-                    alt={`${venueAndVendorData.vendor.name} profile`}
-                    className="w-24 h-24 rounded-full object-cover border-4 border-[#7f34c5]"
-                  />
-                  <h2 className="text-2xl font-poppins font-semibold text-gray-50 mt-4">
-                    {venueAndVendorData.vendor.name}
-                  </h2>
-                  <p className="text-sm text-gray-400 mt-1">
-                    {venueAndVendorData.vendor.bio}
-                  </p>
-                  <div className="mt-6 w-full text-left">
-                    <h3 className="text-lg font-poppins font-semibold text-gray-50">
-                      Services Offered
-                    </h3>
-                    <ul className="list-disc list-inside mt-2 text-gray-300 space-y-1">
-                      {venueAndVendorData.vendor.services.map(
-                        (service, index) => (
-                          <li key={index}>{service}</li>
-                        )
-                      )}
-                    </ul>
-                  </div>
-                </div>
-                <div className="mt-6 w-full text-left">
-                  <h3 className="text-lg font-poppins font-semibold text-gray-50 mb-2">
-                    Customer Reviews
-                  </h3>
-                  <div className="relative overflow-hidden h-40">
-                    <div
-                      className="absolute inset-0 flex transition-transform duration-300"
-                      style={{
-                        transform: `translateX(-${currentReviewIndex * 100}%)`,
-                      }}
-                    >
-                      {venueAndVendorData.reviews.map((review, index) => (
-                        <div
-                          key={review.id}
-                          className="w-full flex-shrink-0 p-4 rounded-lg bg-gray-800"
-                        >
-                          <div className="flex items-center mb-2">
-                            <span className="text-yellow-400 text-lg mr-2">
-                              {"★".repeat(review.rating)}
-                              {"☆".repeat(5 - review.rating)}
-                            </span>
-                            <span className="font-semibold text-gray-50">
-                              {review.user}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-300">
-                            "{review.comment}"
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex justify-center mt-4">
-                    <button
-                      onClick={handlePreviousReview}
-                      className="p-2 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 mr-2"
-                    >
-                      &lt;
-                    </button>
-                    {venueAndVendorData.reviews.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentReviewIndex(index)}
-                        className={`w-2 h-2 mx-1 rounded-full ${
-                          index === currentReviewIndex
-                            ? "bg-[#7f34c5]"
-                            : "bg-gray-600"
-                        }`}
-                      ></button>
-                    ))}
-                    <button
-                      onClick={handleNextReview}
-                      className="p-2 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 ml-2"
-                    >
-                      &gt;
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="mt-4">
-                <h3 className="text-lg font-poppins font-semibold text-gray-50 mb-2">
-                  Exclusive Offers
-                </h3>
-                <div className="relative overflow-hidden h-96">
-                  <div
-                    className="absolute inset-0 flex transition-transform duration-300 space-x-4 p-2"
-                    style={{
-                      transform: `translateX(-${currentOfferIndex * 100}%)`,
-                    }}
-                  >
-                    {offersInGroupsOfThree.map((group, groupIndex) => (
-                      <div
-                        key={groupIndex}
-                        className="w-full flex-shrink-0 grid grid-cols-1 gap-4"
-                      >
-                        {group.map((offer) => (
-                          <div
-                            key={offer.id}
-                            className="bg-gray-800 p-4 rounded-lg"
-                          >
-                            <h4 className="font-bold text-[#7f34c5]">
-                              {offer.title}
-                            </h4>
-                            <p className="text-sm text-gray-300 mt-1">
-                              {offer.description}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-2">
-                              Expires: {offer.expires}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex justify-center mt-4">
-                  <button
-                    onClick={handlePreviousOffer}
-                    className="p-2 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 mr-2"
-                  >
-                    &lt;
-                  </button>
-                  {offersInGroupsOfThree.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentOfferIndex(index)}
-                      className={`w-2 h-2 mx-1 rounded-full ${
-                        index === currentOfferIndex
-                          ? "bg-[#7f34c5]"
-                          : "bg-gray-600"
-                      }`}
-                    ></button>
-                  ))}
-                  <button
-                    onClick={handleNextOffer}
-                    className="p-2 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 ml-2"
-                  >
-                    &gt;
-                  </button>
-                </div>
+        {/* Reviews */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-2">Reviews</h2>
+          {venue?.vendorReview?.length ? (
+            <div>
+              <div className="mb-2">
+                <span className="font-bold">{
+                  typeof currentReview?.user === "string"
+                    ? currentReview.user
+                    : currentReview?.user?.name || "User"
+                }</span> -
+                <span className="ml-2">Rating: {currentReview?.rating}</span>
+                <div>{currentReview?.comment}</div>
+                <div className="text-xs text-gray-500">{currentReview?.createdAt ? new Date(currentReview.createdAt).toLocaleDateString() : ""}</div>
               </div>
-            )}
-          </div>
+              <button onClick={handlePreviousReview} className="mr-2 px-2 py-1 bg-gray-700 rounded">Previous</button>
+              <button onClick={handleNextReview} className="px-2 py-1 bg-gray-700 rounded">Next</button>
+            </div>
+          ) : (
+            <div>No reviews yet.</div>
+          )}
+        </div>
+
+        {/* Offers */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-2">Offers</h2>
+          {venue?.offers?.length ? (
+            <div>
+              <div className="flex gap-4">
+                {currentOfferGroup.map((offer: Offer, i: number) => (
+                  <div key={offer._id || i} className="bg-gray-800 p-4 rounded w-64">
+                    <div className="font-bold mb-1">{offer.title}</div>
+                    <div className="mb-1">{offer.description}</div>
+                    <div className="text-xs text-gray-400">Expires: {offer.expires ? new Date(offer.expires).toLocaleDateString() : "-"}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2">
+                <button onClick={handlePreviousOffer} className="mr-2 px-2 py-1 bg-gray-700 rounded">Previous</button>
+                <button onClick={handleNextOffer} className="px-2 py-1 bg-gray-700 rounded">Next</button>
+              </div>
+            </div>
+          ) : (
+            <div>No offers available.</div>
+          )}
         </div>
 
         {/* Booking Form Section */}

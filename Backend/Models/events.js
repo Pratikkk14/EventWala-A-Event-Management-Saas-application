@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const Venue = require("./venue");
+const Vendor = require("./vendor");
+const User = require("./users");
 
 
 const serviceSchema = new mongoose.Schema({

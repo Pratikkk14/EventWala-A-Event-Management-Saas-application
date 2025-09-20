@@ -143,12 +143,12 @@ const EventsPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        let url = `/api/explore-venues/${eventType}`;
+        let url = `/api/explore-venues/by-type/${eventType}`;
         
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch events");
         const data = await res.json();
-        setEvent(data.events || []);
+        setEvent(data.venues || []);
       } catch (err) {
         setEvent([]);
       }
@@ -260,33 +260,48 @@ const EventsPage = () => {
             Listed Events Grid
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            
-            {event.map((event) => (
-              <div
-                key={event._id}
-                className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl overflow-hidden shadow-xl`}
-              >
-                {/* <img
-                  src={event.image || "https://placehold.co/400x250/312e81/ffffff?text=Event"}
-                  alt={event.name}
-                  className="w-full h-32 object-cover"
-                /> */}
-                <div className="p-4">
-                  <h4 className={`${theme.textMain} font-bold text-lg mb-1`}>
-                    {event.name}
-                  </h4>
-                  <p className={`${theme.textSubtle} text-sm mb-4`}>
-                    {event.venue?.city || event.location || "Unknown Location"}
-                  </p>
-                  <button
-                    className={`w-full ${theme.primaryButtonBg} ${theme.primaryButtonHover} text-white font-semibold py-2 rounded-full`}
-                    onClick={() => handleExplore(event._id)}
-                  >
-                    Explore More →
-                  </button>
+            {event.map((venue) => {
+              // Filter out empty values and join with comma
+              const addressParts = [
+                venue.address?.addressLine1,
+                venue.address?.addressLine2,
+                venue.address?.city,
+                venue.address?.pincode,
+              ].filter((part) => part && part.trim() !== "");
+              return (
+                <div
+                  key={venue._id}
+                  className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl overflow-hidden shadow-xl`}
+                >
+                  {/* Image or Placeholder */}
+                  {venue.photos && venue.photos.length > 0 ? (
+                    <img
+                      src={venue.photos[0].fileId}
+                      alt={venue.name}
+                      className="w-full h-32 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-32 bg-gradient-to-br from-purple-700 to-indigo-700 flex items-center justify-center text-purple-200 text-lg">
+                      No Image
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <h4 className={`${theme.textMain} font-bold text-lg mb-1`}>
+                      {venue.name}
+                    </h4>
+                    <p className={`${theme.textSubtle} text-sm mb-4`}>
+                      {addressParts.join(", ")}
+                    </p>
+                    <button
+                      className={`w-full ${theme.primaryButtonBg} ${theme.primaryButtonHover} text-white font-semibold py-2 rounded-full`}
+                      onClick={() => handleExplore(venue._id)}
+                    >
+                      Explore More →
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </main>

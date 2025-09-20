@@ -16,11 +16,11 @@ const getAllVenues = async (req, res) => {
     }
 };
 
-// Get a single venue by _id
+// Get a single venue by id
 const getVenue = async (req, res) => {
     try {
-        const { _id } = req.params; 
-        const venue = await Venue.findById(_id).populate("vendor");
+        const { id } = req.params;
+        const venue = await Venue.findById(id).populate("vendor");
         if (!venue) {
             return res.status(404).json({ success: false, message: "Venue not found" });
         }
@@ -43,11 +43,11 @@ const createVenue = async (req, res) => {
     }
 };
 
-// Update a venue by _id
+// Update a venue by id
 const updateVenue = async (req, res) => {
     try {
-        const { _id } = req.params;
-        const venue = await Venue.findByIdAndUpdate(_id, req.body, { new: true });
+        const { id } = req.params;
+        const venue = await Venue.findByIdAndUpdate(id, req.body, { new: true });
         if (!venue) {
             return res.status(404).json({ success: false, message: "Venue not found" });
         }
@@ -58,11 +58,11 @@ const updateVenue = async (req, res) => {
     }
 };
 
-// Delete a venue by _id
+// Delete a venue by id
 const deleteVenue = async (req, res) => {
     try {
-        const { _id } = req.params;
-        const venue = await Venue.findByIdAndDelete(_id);
+        const { id } = req.params;
+        const venue = await Venue.findByIdAndDelete(id);
         if (!venue) {
             return res.status(404).json({ success: false, message: "Venue not found" });
         }

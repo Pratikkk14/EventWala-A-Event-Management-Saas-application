@@ -35,27 +35,27 @@ function App() {
       <Toaster position="top-right" />
       <EventTypeContext.Provider value={{ eventType, setEventType }}>
         <BrowserRouter>
-        <Routes>
-          {user ? (
-            <>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/profile" element={<UserProfilePage />} />
+          <Routes>
+            {user ? (
+              <>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/profile" element={<UserProfilePage />} />
 
-              <Route path="/venue" element={<EventsPage />} />
-              <Route path="/venue/:eventType" element={<EventsPage />} />
-              <Route
-                path="/venue/:eventType/:venueId"
-                element={<VenueVendorProfile />}
-              />
-              <Route path="/vendor-dashboard" element={<VendorDashboard />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </>
-          ) : (
-            <>
-              <Route path="*" element={<AuthForm />} />
-            </>
-          )}
-        </Routes>
+                <Route path="/venue" element={<EventsPage />} />
+                <Route path="/venue/:eventType" element={<EventsPage />} />
+                <Route
+                  path="/venue-vendor-profile/:venueId"
+                  element={<VenueVendorProfile />}
+                />
+                <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </>
+            ) : (
+              <>
+                <Route path="*" element={<AuthForm />} />
+              </>
+            )}
+          </Routes>
         </BrowserRouter>
       </EventTypeContext.Provider>
     </>
