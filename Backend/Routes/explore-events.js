@@ -9,12 +9,11 @@ const {
   getEventsNearMe,
 } = require("../Controller/events");
 const authenticate = require("../Middleware/authentication");
-const { route } = require('./DB_Router');
 
 router.get("/:EventType", authenticate, getAllEventByType);
-router.get("/:EventType/:EventId", authenticate, getEvent);
-router.get("/getAllEvents", authenticate, getAllEvents);
-router.post("/:EventType/:EventId/BookEvent", authenticate, bookEvent);
-router.get("/getEventsNearMe", getEventsNearMe);
+router.get("/", authenticate, getAllEvents);
+router.get("/:EventId", authenticate, getEvent);
+router.post("/:EventId/BookEvent", authenticate, bookEvent);
+router.get("/getEventsNearMe", authenticate, getEventsNearMe);
 
 module.exports = router;

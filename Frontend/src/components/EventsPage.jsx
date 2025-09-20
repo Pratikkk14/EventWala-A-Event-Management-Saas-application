@@ -6,6 +6,8 @@ import {
   SlidersHorizontal,
   MapPin,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { EventTypeContext } from '../context/EventTypeContext';
 
 // The cool theme styles from your existing Dashboard.jsx
 const theme = {
@@ -76,6 +78,9 @@ const EventsPage = () => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(true);
   const [promoIndex, setPromoIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+  const { eventType } = React.useContext(EventTypeContext);
+  const [event, setEvent] = useState([]);
 
   const promoEvents = [
     "Major Events / Sponsored Events Promo 1",
@@ -135,25 +140,46 @@ const EventsPage = () => {
     return () => clearTimeout(timer);
   }, [promoIndex, promoEvents.length]);
 
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        let url = `/api/explore-venues/${eventType}`;
+        
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to fetch events");
+        const data = await res.json();
+        setEvent(data.events || []);
+      } catch (err) {
+        setEvent([]);
+      }
+    };
+    fetchEvents();
+  }, [eventType]);
+
+  // Handler to navigate and pass venue _id
+  const handleExplore = (venueId) => {
+    navigate(`/venue-vendor-profile/${venueId}`);
+  };
+
   return (
     <div
       className={`min-h-screen relative overflow-hidden ${theme.background} ${theme.font} flex flex-col md:flex-row p-4`}
     >
       {styleTag}
 
-    /* Filters Sidebar */
-        <aside
-          className={`${isFiltersOpen ? "w-64" : "w-16"} ${
-            theme.sidebarBg
-          } border ${
-            theme.sidebarBorder
-          } rounded-3xl m-4 transition-all duration-300 ease-in-out flex flex-col h-[calc(100vh-2rem)]`}
+      {/* Filters Sidebar */}
+      <aside
+        className={`${isFiltersOpen ? "w-64" : "w-16"} ${
+          theme.sidebarBg
+        } border ${
+          theme.sidebarBorder
+        } rounded-3xl m-4 transition-all duration-300 ease-in-out flex flex-col h-[calc(100vh-2rem)]`}
+      >
+        <div
+          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+          className="flex justify-between items-center p-4 cursor-pointer"
         >
-          <div
-            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-            className="flex justify-between items-center p-4 cursor-pointer"
-          >
-            <div className="flex items-center">
+          <div className="flex items-center">
             <SlidersHorizontal className={`w-6 h-6 ${theme.textMain}`} />
             <h2
               className={`font-bold text-lg ml-2 transition-opacity duration-300 ${
@@ -162,12 +188,12 @@ const EventsPage = () => {
             >
               Filters
             </h2>
-            </div>
           </div>
-          <SidebarContent isFiltersOpen={isFiltersOpen} theme={theme} />
-        </aside>
+        </div>
+        <SidebarContent isFiltersOpen={isFiltersOpen} theme={theme} />
+      </aside>
 
-        {/* Main Content */}
+      {/* Main Content */}
       <main className="flex-1 p-4 md:p-8 flex flex-col overflow-x-hidden">
         {/* Search Bar */}
         <div className="relative mb-8">
@@ -228,31 +254,33 @@ const EventsPage = () => {
           </div>
         </div>
 
-        {/* Listed Events Grid */}
+        {/* Listed Events Grid (from DB) */}
         <div className="mb-8">
           <h3 className={`${theme.textMain} text-2xl font-bold mb-4`}>
             Listed Events Grid
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredEvents.map((event) => (
+            
+            {event.map((event) => (
               <div
-                key={event.id}
+                key={event._id}
                 className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl overflow-hidden shadow-xl`}
               >
-                <img
-                  src={event.image}
-                  alt={event.title}
+                {/* <img
+                  src={event.image || "https://placehold.co/400x250/312e81/ffffff?text=Event"}
+                  alt={event.name}
                   className="w-full h-32 object-cover"
-                />
+                /> */}
                 <div className="p-4">
                   <h4 className={`${theme.textMain} font-bold text-lg mb-1`}>
-                    {event.title}
+                    {event.name}
                   </h4>
                   <p className={`${theme.textSubtle} text-sm mb-4`}>
-                    {event.location}
+                    {event.venue?.city || event.location || "Unknown Location"}
                   </p>
                   <button
                     className={`w-full ${theme.primaryButtonBg} ${theme.primaryButtonHover} text-white font-semibold py-2 rounded-full`}
+                    onClick={() => handleExplore(event._id)}
                   >
                     Explore More →
                   </button>

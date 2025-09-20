@@ -1,10 +1,13 @@
 import React from 'react';
+import { useState } from "react";
+import { EventTypeContext } from './context/EventTypeContext.js';
 
 import AuthForm from './components/AuthForm';
 import Dashboard from './components/Dashboard';
 import UserProfilePage from './components/UserProfilePage'; 
 // import SettingsPage from './components/SettingsPage';
-import EventsPage from './components/EventsPage';
+// @ts-ignore
+import EventsPage from './components/EventsPage.jsx';
 import VendorDashboard from './components/VendorDashboard';
 import VenueVendorProfile from './components/VenueVendorProfile';
 
@@ -14,6 +17,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
   const { user, loading } = useAuth();
+  const [eventType, setEventType] = useState("");
 
   if (loading) {
     return (
@@ -29,16 +33,20 @@ function App() {
   return (
     <>
       <Toaster position="top-right" />
-      <BrowserRouter>
+      <EventTypeContext.Provider value={{ eventType, setEventType }}>
+        <BrowserRouter>
         <Routes>
           {user ? (
             <>
               <Route path="/" element={<Dashboard />} />
               <Route path="/profile" element={<UserProfilePage />} />
-              {/* Add other protected routes here */}
-              {/* <Route path="/settings" element={<SettingsPage />} /> */}
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/venue-info" element={<VenueVendorProfile />} />
+
+              <Route path="/venue" element={<EventsPage />} />
+              <Route path="/venue/:eventType" element={<EventsPage />} />
+              <Route
+                path="/venue/:eventType/:venueId"
+                element={<VenueVendorProfile />}
+              />
               <Route path="/vendor-dashboard" element={<VendorDashboard />} />
               <Route path="*" element={<Navigate to="/" />} />
             </>
@@ -48,7 +56,8 @@ function App() {
             </>
           )}
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </EventTypeContext.Provider>
     </>
   );
 }

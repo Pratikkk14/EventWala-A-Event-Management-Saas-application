@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
+//@ts-ignore
+import { EventTypeContext } from "../context/EventTypeContext";
 import { useAuth } from "../hooks/useAuth";
 import {
   Search,
@@ -25,6 +27,8 @@ import defaultAvatar from "../images/UserAvatars/Male.png";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard: React.FC = () => {
+
+
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -122,30 +126,42 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // [
-  //   "Baby Shower",
-  //   "Birthday Party",
-  //   "Engagement",
-  //   "Wedding",
-  //   "Housewarming",
-  //   "Anniversary",
-  //   "Corporate Event",
-  //   "Farewell",
-  //   "Conference",
-  //   "Workshop"
-  // ]
-  const eventTypes = [
+  // Only filter the eventTypes (dummy/static data) here for the dashboard grid
+  // Define the event type enum as per backend model
+  type EventType =
+    | "Baby Shower"
+    | "Birthday Party"
+    | "Engagement"
+    | "Wedding"
+    | "Housewarming"
+    | "Anniversary"
+    | "Corporate Event"
+    | "Farewell"
+    | "Conference"
+    | "Workshop";
+
+  // Interface for event type card (matches backend model fields where relevant)
+  interface EventTypeCard {
+    id: string; // unique identifier for frontend
+    name: EventType; // matches backend eventTypes enum
+    description: string;
+    image: string;
+    icon: React.ElementType;
+  }
+
+  // Static event types data (matches backend model for easy API handling)
+  const eventTypes: EventTypeCard[] = [
     {
       id: "baby-shower",
-      title: "Baby Shower",
+      name: "Baby Shower",
       description: "Find the perfect venue for your baby shower.",
       image:
         "https://images.pexels.com/photos/1973270/pexels-photo-1973270.jpeg?auto=compress&cs=tinysrgb&w=600",
       icon: Baby,
     },
     {
-      id: "birthday",
-      title: "Birthday Party",
+      id: "birthday-party",
+      name: "Birthday Party",
       description: "Find the perfect venue for your birthday party.",
       image:
         "https://images.pexels.com/photos/1729797/pexels-photo-1729797.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -153,7 +169,7 @@ const Dashboard: React.FC = () => {
     },
     {
       id: "engagement",
-      title: "Engagement",
+      name: "Engagement",
       description: "Book majestic venues for your engagement.",
       image:
         "https://images.pexels.com/photos/265722/pexels-photo-265722.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -161,7 +177,7 @@ const Dashboard: React.FC = () => {
     },
     {
       id: "wedding",
-      title: "Wedding",
+      name: "Wedding",
       description: "Plan your dream wedding with us.",
       image:
         "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -169,7 +185,7 @@ const Dashboard: React.FC = () => {
     },
     {
       id: "housewarming",
-      title: "Housewarming",
+      name: "Housewarming",
       description: "Start your new chapter with love and joy.",
       image:
         "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -177,16 +193,15 @@ const Dashboard: React.FC = () => {
     },
     {
       id: "anniversary",
-      title: "Anniversary",
-      description:
-        "Celebrate everlasting love with a special anniversary venue.",
+      name: "Anniversary",
+      description: "Celebrate everlasting love with a special anniversary venue.",
       image:
         "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=600",
       icon: Gift,
     },
     {
-      id: "corporate",
-      title: "Corporate Event",
+      id: "corporate-event",
+      name: "Corporate Event",
       description: "Host professional events in style and comfort.",
       image:
         "https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -194,7 +209,7 @@ const Dashboard: React.FC = () => {
     },
     {
       id: "farewell",
-      title: "Farewell",
+      name: "Farewell",
       description: "Say goodbye and cherish memories in a special way.",
       image:
         "https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -202,7 +217,7 @@ const Dashboard: React.FC = () => {
     },
     {
       id: "conference",
-      title: "Conference",
+      name: "Conference",
       description: "Host seamless conferences in fully-equipped venues.",
       image:
         "https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -210,7 +225,7 @@ const Dashboard: React.FC = () => {
     },
     {
       id: "workshop",
-      title: "Workshop",
+      name: "Workshop",
       description: "Find creative spaces to conduct your next workshop.",
       image:
         "https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -218,9 +233,10 @@ const Dashboard: React.FC = () => {
     },
   ];
 
+  // Filtered events based on search query
   const filteredEvents = eventTypes.filter(
     (event) =>
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       event.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -305,6 +321,8 @@ const Dashboard: React.FC = () => {
       color: "text-purple-300"
     },
   ];
+
+  const { setEventType } = useContext(EventTypeContext);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden font-sans flex">
@@ -543,7 +561,7 @@ const Dashboard: React.FC = () => {
                 <div className="relative mb-4 overflow-hidden rounded-xl">
                   <img
                     src={event.image}
-                    alt={event.title}
+                    alt={event.name}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
@@ -552,12 +570,18 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">
-                  {event.title}
+                  {event.name}
                 </h3>
                 <p className="text-purple-200 text-sm mb-4 line-clamp-2">
                   {event.description}
                 </p>
-                <button className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-2 px-4 rounded-lg font-semibold transition-all duration-300 transform group-hover:scale-105">
+                <button
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-2 px-4 rounded-lg font-semibold transition-all duration-300 transform group-hover:scale-105"
+                  onClick={() => {
+                  setEventType(event.id); // set the whole event object in context
+                  navigate(`/venue/${event.id}`);
+                  }}
+                >
                   Explore →
                 </button>
               </div>

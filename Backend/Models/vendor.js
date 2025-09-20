@@ -13,7 +13,6 @@ const vendorSchema = new mongoose.Schema({
   },
   venues: [{ type: mongoose.Schema.Types.ObjectId, ref: "Venue" }],
   services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }],
-  privateEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Event" }],
   isVerified: { type: Boolean, default: false },
   accountStatus: {
     type: String,
