@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const guestSchema = new mongoose.Schema({
   name: String,
-  email: String,
+  email: { type: String, unique: true },
   phone: String,
   invitedAt: { type: Date, default: Date.now },
   // Add more fields as needed

@@ -14,18 +14,18 @@ const authenticate = require("../Middleware/authentication");
 router.get("/", getAllVenues);
 
 // Get all venues by event type
-router.get("/:eventType", getAllVenues);
+router.get("/by-type/:eventType", getAllVenues);
 
-// Get a single venue by _id
+// Get a single venue by id
 router.get("/:id", getVenue);
 
 // Create a new venue
 router.post("/", authenticate, createVenue);
 
-// Update a venue by _id
+// Update a venue by id
 router.put("/:id", authenticate, updateVenue);
 
-// Delete a venue by _id
+// Delete a venue by id
 router.delete("/:id", authenticate, deleteVenue);
 
 module.exports = router;

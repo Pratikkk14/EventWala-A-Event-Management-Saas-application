@@ -26,3 +26,5 @@ Backend/secrets
 *.sln
 *.sw?
 .env
+
+VenueTemp.jsx

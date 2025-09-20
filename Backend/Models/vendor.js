@@ -5,12 +5,10 @@ const vendorSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   businessName: { type: String, required: true, trim: true },
   contactPerson: { type: String, required: true, trim: true },
+  vendorDescription: String,
   phoneNumber: String,
   website: String,
-  logo: {
-    data: Buffer,
-    contentType: String,
-  },
+  logoUrl: { type: String }, // Accepts URL from cloud bucket
   venues: [{ type: mongoose.Schema.Types.ObjectId, ref: "Venue" }],
   services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }],
   isVerified: { type: Boolean, default: false },
