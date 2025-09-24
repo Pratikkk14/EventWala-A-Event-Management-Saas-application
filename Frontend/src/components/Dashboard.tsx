@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
+
 //@ts-ignore
 import { EventTypeContext } from "../context/EventTypeContext";
+import { useLocationContext } from "../context/LocationContext";
 import { useAuth } from "../hooks/useAuth";
+
 import {
   Search,
   User,
@@ -36,6 +39,7 @@ const Dashboard: React.FC = () => {
   const [typedText, setTypedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [textIndex, setTextIndex] = useState(0);
+  const { getCurrentLocation } = useLocationContext();
   const navigate = useNavigate();
 
   const textsToAnimate = [
@@ -68,6 +72,10 @@ const Dashboard: React.FC = () => {
   );
   const userMenuRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+  getCurrentLocation();
+    }, []);
 
   useEffect(() => {
     const handleTyping = () => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState } from "react";
 import { EventTypeContext } from './context/EventTypeContext.js';
+import { LocationProvider } from './context/LocationContext';
 
 import AuthForm from './components/AuthForm';
 import Dashboard from './components/Dashboard';
@@ -33,31 +34,33 @@ function App() {
   return (
     <>
       <Toaster position="top-right" />
-      <EventTypeContext.Provider value={{ eventType, setEventType }}>
-        <BrowserRouter>
-          <Routes>
-            {user ? (
-              <>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/profile" element={<UserProfilePage />} />
+      <LocationProvider>
+        <EventTypeContext.Provider value={{ eventType, setEventType }}>
+          <BrowserRouter>
+            <Routes>
+              {user ? (
+                <>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/profile" element={<UserProfilePage />} />
 
-                <Route path="/venue" element={<EventsPage />} />
-                <Route path="/venue/:eventType" element={<EventsPage />} />
-                <Route
-                  path="/venue-vendor-profile/:venueId"
-                  element={<VenueVendorProfile />}
-                />
-                <Route path="/vendor-dashboard" element={<VendorDashboard />} />
-                <Route path="*" element={<Navigate to="/" />} />
-              </>
-            ) : (
-              <>
-                <Route path="*" element={<AuthForm />} />
-              </>
-            )}
-          </Routes>
-        </BrowserRouter>
-      </EventTypeContext.Provider>
+                  <Route path="/venue" element={<EventsPage />} />
+                  <Route path="/venue/:eventType" element={<EventsPage />} />
+                  <Route
+                    path="/venue-vendor-profile/:venueId"
+                    element={<VenueVendorProfile />}
+                  />
+                  <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+                  <Route path="*" element={<Navigate to="/" />} />
+                </>
+              ) : (
+                <>
+                  <Route path="*" element={<AuthForm />} />
+                </>
+              )}
+            </Routes>
+          </BrowserRouter>
+        </EventTypeContext.Provider>
+      </LocationProvider>
     </>
   );
 }
