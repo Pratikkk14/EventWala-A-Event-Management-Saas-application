@@ -4,6 +4,7 @@ const connectToMongo = require('./DB/MongoDB_Connection');
 const DB_Router = require("./Routes/DB_Router");
 const explore_events = require('./Routes/explore-events');
 const explore_venues = require('./Routes/explore-venues');
+const Vendor_Router = require('./Routes/Vendor_Router');
 const cors = require('cors');
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true })); // For parsing application/x-ww
 app.use("/api/DB_Routes", DB_Router);
 app.use("/api/explore-events", explore_events);
 app.use("/api/explore-venues", explore_venues);
+app.use("/api/vendors", Vendor_Router);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

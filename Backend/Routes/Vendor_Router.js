@@ -1,5 +1,14 @@
 const express = require("express");
 const router = express.Router();
+const {
+  getAllVendors,
+  getVendorById,
+  createVendor,
+  updateVendorById,
+  deleteVendorById,
+  updateVendorLogo,
+  getVendorVenues,
+} = require("../Controller/vendor");
 
 // Route definitions
 router.get("/", getAllVendors);
