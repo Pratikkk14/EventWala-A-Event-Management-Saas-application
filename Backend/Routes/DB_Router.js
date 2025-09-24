@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { createUser, updateUser, upload } = require("../Controller/DB");
-const { profileController, isUserInDB } = require("../Controller/Profile");
+const { profileController, isUserInDB } = require("../Controller/profile");
 
 const authenticate = require("../Middleware/authentication");
 

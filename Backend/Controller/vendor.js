@@ -7,17 +7,17 @@ const getAllVendors = async (req, res) => {
     const vendors = await Vendor.find();
     res.json(vendors);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: `getAllVendors: ${err.message}` });
   }
 };
 
 const getVendorById = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.vendorId);
-    if (!vendor) return res.status(404).json({ error: "Vendor not found" });
+    if (!vendor) return res.status(404).json({ error: "getVendorById: Vendor not found" });
     res.json(vendor);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: `getVendorById: ${err.message}` });
   }
 };
 
@@ -27,7 +27,7 @@ const createVendor = async (req, res) => {
     await vendor.save();
     res.status(201).json(vendor);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: `createVendor: ${err.message}` });
   }
 };
 
@@ -38,36 +38,36 @@ const updateVendorById = async (req, res) => {
       req.body,
       { new: true }
     );
-    if (!vendor) return res.status(404).json({ error: "Vendor not found" });
+    if (!vendor) return res.status(404).json({ error: "updateVendorById: Vendor not found" });
     res.json(vendor);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: `updateVendorById: ${err.message}` });
   }
 };
 
 const deleteVendorById = async (req, res) => {
   try {
     const vendor = await Vendor.findByIdAndDelete(req.params.vendorId);
-    if (!vendor) return res.status(404).json({ error: "Vendor not found" });
+    if (!vendor) return res.status(404).json({ error: "deleteVendorById: Vendor not found" });
     res.json({ message: "Vendor deleted" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: `deleteVendorById: ${err.message}` });
   }
 };
 
 const updateVendorLogo = async (req, res) => {
   try {
     const { logoUrl } = req.body;
-    if (!logoUrl) return res.status(400).json({ error: "logoUrl is required" });
+    if (!logoUrl) return res.status(400).json({ error: "updateVendorLogo: logoUrl is required" });
     const vendor = await Vendor.findByIdAndUpdate(
       req.params.vendorId,
       { logoUrl },
       { new: true }
     );
-    if (!vendor) return res.status(404).json({ error: "Vendor not found" });
+    if (!vendor) return res.status(404).json({ error: "updateVendorLogo: Vendor not found" });
     res.json(vendor);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: `updateVendorLogo: ${err.message}` });
   }
 };
 
@@ -76,7 +76,7 @@ const getVendorVenues = async (req, res) => {
     const venues = await Venue.find({ vendor: req.params.vendorId });
     res.json(venues);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: `getVendorVenues: ${err.message}` });
   }
 };
 
