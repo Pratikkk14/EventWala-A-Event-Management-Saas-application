@@ -110,8 +110,21 @@ To run the project locally:
    npm install
    ```
 3. **Set up environment variables** in both `/Backend/.env` and `/Frontend/.env`.
+      ```frontend/env file 
+      VITE_API_KEY=AIzaSyDY1JTmzqC4y3onDBNxWqcc2Ld5gmub8oE
+      VITE_AUTH_DOMAIN=fir-01-8f643.firebaseapp.com
+      VITE_PROJECT_ID=fir-01-8f643
+      VITE_STORAGE_BUCKET=fir-01-8f643.firebasestorage.app
+      VITE_MESSAGING_SENDER_ID=715244062056
+      VITE_APP_ID=1:715244062056:web:047b91f4a2d8c5283b82dd
+      VITE_MEASUREMENT_ID=G-1KT99FWY7W
+      ```
+      ```backend/env
+      PORT=your_portnum 
+      MONGODB_URI=your_url
+      ```
 
-4. **Run backend and frontend servers** as per your development environment.
+5. **Run backend and frontend servers** as per your development environment.
 
 ---
 
