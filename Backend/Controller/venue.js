@@ -3,10 +3,19 @@ const Venue = require("../Models/venue");
 // Get all venues, optionally filter by eventType
 const getAllVenues = async (req, res) => {
     try {
-        const { eventTypes } = req.query;
+        // Support filtering by eventTypes (query) or eventType (param)
+        let eventTypes = req.query.eventTypes;
+        if (!eventTypes && req.params.eventType) {
+            eventTypes = req.params.eventType;
+        }
         let query = {};
         if (eventTypes) {
-            query.eventTypes = eventTypes;
+            // If eventTypes is a comma-separated string, split to array
+            if (typeof eventTypes === 'string' && eventTypes.includes(',')) {
+                query.eventTypes = { $in: eventTypes.split(',') };
+            } else {
+                query.eventTypes = eventTypes;
+            }
         }
         const venues = await Venue.find(query).populate("vendor");
         res.json({ success: true, venues });
