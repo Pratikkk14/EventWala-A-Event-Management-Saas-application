@@ -1,4 +1,5 @@
 const Venue = require("../Models/venue");
+const Vendor = require("../Models/vendor");
 
 // Get all venues, optionally filter by eventType
 const getAllVenues = async (req, res) => {
@@ -6,7 +7,7 @@ const getAllVenues = async (req, res) => {
         const { eventTypes } = req.query;
         let query = {};
         if (eventTypes) {
-            query.eventTypes = eventTypes;
+            query.eventTypes = {$in : [eventTypes]};
         }
         const venues = await Venue.find(query).populate("vendor");
         res.json({ success: true, venues });
@@ -21,6 +22,7 @@ const getVenue = async (req, res) => {
     try {
         const { id } = req.params;
         const venue = await Venue.findById(id).populate("vendor");
+
         if (!venue) {
             return res.status(404).json({ success: false, message: "Venue not found" });
         }

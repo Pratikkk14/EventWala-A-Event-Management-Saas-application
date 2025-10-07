@@ -22,10 +22,10 @@ const venueSchema = new mongoose.Schema({
     country: String,
   },
   photos: [{ fileId: String }], // or URLs
-  vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" }, // Master vendor
+  vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' }, // Master vendor
   vendorReview: [
     {
-      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // reviewer
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // reviewer
       rating: { type: Number, min: 1, max: 5, required: true },
       comment: { type: String },
       createdAt: { type: Date, default: Date.now },
