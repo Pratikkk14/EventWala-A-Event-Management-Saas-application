@@ -8,7 +8,7 @@ const Vendor_Router = require('./Routes/Vendor_Router');
 const cors = require('cors');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = 4000;
 
 connectToMongo(process.env.MONGODB_URI);
 

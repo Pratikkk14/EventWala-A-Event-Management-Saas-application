@@ -12,6 +12,10 @@ import EventsPage from './components/EventsPage.jsx';
 import VendorDashboard from './components/VendorDashboard';
 import VenueVendorProfile from './components/VenueVendorProfile';
 
+//testing pg
+import Testpage from './components/Testpage'; 
+import TempVenueVendorProfile from '../TempVenueVendorProfile.js';
+
 import { useAuth } from './hooks/useAuth';
 import { Toaster } from "react-hot-toast";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -42,14 +46,12 @@ function App() {
                 <>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/profile" element={<UserProfilePage />} />
-
                   <Route path="/venue" element={<EventsPage />} />
                   <Route path="/venue/:eventType" element={<EventsPage />} />
-                  <Route
-                    path="/venue-vendor-profile/:venueId"
-                    element={<VenueVendorProfile />}
-                  />
+                  <Route path="/venue-vendor-profile/:venueId" element={<VenueVendorProfile />} />
                   <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+                  <Route path="/test" element={<Testpage />} />
+                  <Route path="/test-venue-vendor-profile" element={<TempVenueVendorProfile />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </>
               ) : (

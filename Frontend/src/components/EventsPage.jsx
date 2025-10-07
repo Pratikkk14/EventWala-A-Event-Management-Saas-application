@@ -143,7 +143,7 @@ const EventsPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        let url = `/api/explore-venues/by-type/${eventType}`;
+        let url = `/api/explore-venues?eventTypes=${encodeURIComponent(eventType)}`;
         
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch events");
