@@ -186,8 +186,8 @@ const VenueVendorProfile = () => {
     setCurrentStep(1);
   };
 
-  const isStep1Valid = formData.name && formData.email && formData.phone;
-  const isStep2Valid = formData.eventType && formData.date && formData.guests;
+  const isStep1Valid = formData.name.trim() !== "" && formData.email.trim() !== "" && formData.phone.trim() !== "";
+  const isStep2Valid = formData.eventType.trim() !== "" && formData.date.trim() !== "" && formData.guests.trim() !== "" && Number(formData.guests) > 0;
 
 
   const handleNextReview = () => {
@@ -307,6 +307,8 @@ const VenueVendorProfile = () => {
                 className="mt-1 block w-full rounded-md border-gray-600 shadow-sm focus:border-[#7f34c5] focus:ring-[#7f34c5]"
                 min="1"
                 required
+                pattern="[1-9][0-9]*"
+                inputMode="numeric"
               />
             </div>
           </div>

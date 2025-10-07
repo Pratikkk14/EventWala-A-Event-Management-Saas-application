@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
-require("./vendor");
+
+const Vendor = require("./vendor");
+const User = require("./users");
 
 const offerSchema = new mongoose.Schema({
   title: { type: String, required: true },

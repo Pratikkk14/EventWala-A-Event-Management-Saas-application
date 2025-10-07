@@ -4,7 +4,11 @@ const Vendor = require("../Models/vendor");
 // Get all venues, optionally filter by eventType
 const getAllVenues = async (req, res) => {
     try {
-        const { eventTypes } = req.query;
+        // Support filtering by eventTypes (query) or eventType (param)
+        let eventTypes = req.query.eventTypes;
+        if (!eventTypes && req.params.eventType) {
+            eventTypes = req.params.eventType;
+        }
         let query = {};
         if (eventTypes) {
             query.eventTypes = {$in : [eventTypes]};

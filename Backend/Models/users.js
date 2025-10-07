@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const Venue = require("./venue");
+const Event = require("./events");
 
 const guestSchema = new mongoose.Schema({
   name: String,
