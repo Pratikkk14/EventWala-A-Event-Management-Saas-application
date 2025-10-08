@@ -74,6 +74,17 @@ const venueSchema = new mongoose.Schema({
     },
   ],
   offers: [offerSchema],
+  location: {
+    type: {
+      type: String,
+      enum: ["Point"], // 'location.type' must always be 'Point'
+      required: true,
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      required: true,
+    },
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

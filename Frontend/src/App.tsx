@@ -11,6 +11,7 @@ import UserProfilePage from './components/UserProfilePage';
 import EventsPage from './components/EventsPage.jsx';
 import VendorDashboard from './components/VendorDashboard';
 import VenueVendorProfile from './components/VenueVendorProfile';
+import Mapcomponent from './components/MapComponent';
 
 //testing pg
 import Testpage from './components/Testpage'; 
@@ -51,6 +52,7 @@ function App() {
                   <Route path="/venue-vendor-profile/:venueId" element={<VenueVendorProfile />} />
                   <Route path="/vendor-dashboard" element={<VendorDashboard />} />
                   <Route path="/test" element={<Testpage />} />
+                  <Route path="/all-event-map" element={<Mapcomponent />} />
                   <Route path="/test-venue-vendor-profile" element={<TempVenueVendorProfile />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </>

@@ -88,44 +88,44 @@ const EventsPage = () => {
     "Major Events / Sponsored Events Promo 3",
   ];
 
-  const allEvents = [
-    {
-      id: 1,
-      title: "Event A",
-      location: "City A",
-      image: "https://placehold.co/400x250/312e81/ffffff?text=Event+A",
-    },
-    {
-      id: 2,
-      title: "Event B",
-      location: "City B",
-      image: "https://placehold.co/400x250/4f46e5/ffffff?text=Event+B",
-    },
-    {
-      id: 3,
-      title: "Event C",
-      location: "City C",
-      image: "https://placehold.co/400x250/6d28d9/ffffff?text=Event+C",
-    },
-    {
-      id: 4,
-      title: "Event D",
-      location: "City D",
-      image: "https://placehold.co/400x250/7c3aed/ffffff?text=Event+D",
-    },
-    {
-      id: 5,
-      title: "Event E",
-      location: "City E",
-      image: "https://placehold.co/400x250/8b5cf6/ffffff?text=Event+E",
-    },
-    {
-      id: 6,
-      title: "Event F",
-      location: "City F",
-      image: "https://placehold.co/400x250/a78bfa/ffffff?text=Event+F",
-    },
-  ];
+  // const allEvents = [
+  //   {
+  //     id: 1,
+  //     title: "Event A",
+  //     location: "City A",
+  //     image: "https://placehold.co/400x250/312e81/ffffff?text=Event+A",
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "Event B",
+  //     location: "City B",
+  //     image: "https://placehold.co/400x250/4f46e5/ffffff?text=Event+B",
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "Event C",
+  //     location: "City C",
+  //     image: "https://placehold.co/400x250/6d28d9/ffffff?text=Event+C",
+  //   },
+  //   {
+  //     id: 4,
+  //     title: "Event D",
+  //     location: "City D",
+  //     image: "https://placehold.co/400x250/7c3aed/ffffff?text=Event+D",
+  //   },
+  //   {
+  //     id: 5,
+  //     title: "Event E",
+  //     location: "City E",
+  //     image: "https://placehold.co/400x250/8b5cf6/ffffff?text=Event+E",
+  //   },
+  //   {
+  //     id: 6,
+  //     title: "Event F",
+  //     location: "City F",
+  //     image: "https://placehold.co/400x250/a78bfa/ffffff?text=Event+F",
+  //   },
+  // ];
 
   const filteredEvents = allEvents.filter(
     (event) =>

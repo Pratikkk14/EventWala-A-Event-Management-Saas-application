@@ -23,7 +23,7 @@ const Testpage: React.FC = () => {
     navigate(`/test-venue-vendor-profile`);
   };
     const handleDemoRedirect = () => {
-    navigate(`/test-venue-vendor-profile`);
+    navigate(`/all-event-map`);
   };
 
   const handleFetchVenue = async () => {
@@ -70,7 +70,7 @@ const Testpage: React.FC = () => {
           marginRight: "1rem",
         }}
       >
-        Go to VenueVendorProfile
+        Go to Map
       </button>
       <button
         onClick={handleFetchVenue}

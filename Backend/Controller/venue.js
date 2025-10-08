@@ -21,6 +21,73 @@ const getAllVenues = async (req, res) => {
     }
 };
 
+
+const getAllVenuesByFilter = async (req, res) => { 
+    try {
+    let lat, lng;
+
+    if (req.query.pincode) {
+      const decodedPin = Buffer.from(req.query.pincode, "base64").toString("utf8");
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?postalcode=${decodedPin}&countrycodes=in&format=json&limit=1`,
+        { headers: { "User-Agent": "NearbyLocator/1.0 (contact@example.com)" } }
+      );
+
+      const data = await response.json();
+      if (!data || data.length === 0) {
+        return res.status(404).json({ message: "PIN code not found" });
+      }
+
+      lat = parseFloat(data[0].lat);
+      lng = parseFloat(data[0].lon);
+    } else if (req.query.lat && req.query.lng) {
+      lat = parseFloat(req.query.lat);
+      lng = parseFloat(req.query.lng);
+    } else {
+      return res.status(400).json({ message: "Either location or pin code required" });
+    }
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ message: "Invalid coordinates" });
+    }
+
+    const radius = parseInt(req.query.radius) || 3000;
+
+    // Query Venue model for nearby venues
+    const venues = await Venue.find({
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [lng, lat] },
+          $maxDistance: radius,
+        },
+      },
+    });
+
+     // Format response for frontend
+    const locations = venues.map(v => ({
+      name: v.name,
+      addressLine1: v.address?.addressLine1 ?? "",
+      addressLine2: v.address?.addressLine2 ?? "",
+      pincode: v.address?.pincode ?? "",
+      city: v.address?.city ?? "",
+      position: v.location?.coordinates
+        ? [v.location.coordinates[1], v.location.coordinates[0]] // [lng, lat] as mongo wants reverse order to process data
+        : [0, 0],
+      image: v.photos?.[0]?.fileId ?? "",
+        id: v._id,
+    }));
+        
+    if (locations.length === 0) {
+      return res.status(404).json({ message: "No nearby venues found", baseLocation: { lat, lng } });
+    }
+
+    res.json({ baseLocation: { lat, lng }, locations });
+  } catch (err) {
+    console.error("Error fetching nearby venues:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 // Get a single venue by id
 const getVenue = async (req, res) => {
     try {
@@ -85,4 +152,5 @@ module.exports = {
     createVenue,
     updateVenue,
     deleteVenue,
+    getAllVenuesByFilter,
 };

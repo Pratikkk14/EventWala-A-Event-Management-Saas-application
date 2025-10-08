@@ -7,14 +7,16 @@ const {
     createVenue,
     updateVenue,
     deleteVenue,
+    getAllVenuesByFilter,
 } = require("../Controller/venue");
 const authenticate = require("../Middleware/authentication");
 
 // Get all venues, optionally filter by eventType
 router.get("/", getAllVenues);
 
-// // Get all venues by event type
-// router.get("/by-type/:eventType", getAllVenues);
+// Get all venues by a types of filter like pincode, latitude, longitude
+router.get("/all-events", getAllVenuesByFilter);
+
 
 // Create a new venue
 router.post("/", authenticate, createVenue);

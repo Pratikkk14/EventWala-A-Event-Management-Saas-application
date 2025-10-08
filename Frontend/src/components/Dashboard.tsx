@@ -377,7 +377,10 @@ const Dashboard: React.FC = () => {
 
           {/* Navigation */}
           <nav className="flex flex-col gap-4 w-full mb-10 px-3">
-            <button className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group">
+            <button
+              className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group"
+              onClick={() => navigate("/all-event-map")}
+            >
               <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <span
                 className={`text-sm font-medium transition-opacity duration-300 ${

@@ -8,6 +8,7 @@ const {
   bookEvent,
   getEventsNearMe,
 } = require("../Controller/events");
+
 const authenticate = require("../Middleware/authentication");
 
 router.get("/:EventType", authenticate, getAllEventByType);
