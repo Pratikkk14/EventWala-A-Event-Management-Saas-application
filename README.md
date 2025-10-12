@@ -7,12 +7,12 @@ A modern SaaS platform for seamless event management.
 ## Project Structure
 
 Below is the directory structure of the repository, formatted for easy preview:
-
 ```
 EventWala-A-Event-Management-Saas-application/
 │
 ├── Backend/
 │   ├── .env
+│   ├── .gitignore
 │   ├── index.js
 │   ├── package.json
 │   ├── configs/
@@ -21,6 +21,7 @@ EventWala-A-Event-Management-Saas-application/
 │   │   ├── DB.js
 │   │   ├── events.js
 │   │   ├── profile.js
+│   │   ├── vendor.js
 │   │   └── venue.js
 │   ├── DB/
 │   │   └── MongoDB_Connection.js
@@ -28,28 +29,36 @@ EventWala-A-Event-Management-Saas-application/
 │   │   └── authentication.js
 │   ├── Models/
 │   │   ├── events.js
+│   │   ├── services.js
 │   │   ├── users.js
 │   │   ├── vendor.js
 │   │   └── venue.js
 │   ├── Routes/
 │   │   ├── DB_Router.js
 │   │   ├── explore-events.js
-│   │   └── explore-venues.js
+│   │   ├── explore-venues.js
+│   │   └── Vendor_Router.js
 │   ├── secrets/
-│   │   └── "YOUR-SECRET-KEY-FOR-FIREBASE-OAUTH"
+│   │   └── serviceAccountKey.json
+│   ├── services/
+│   │   └── appwrite.js
 │   ├── TODO's/
+│   │   ├── frontend_backend_todos.txt
 │   │   ├── tasks.txt
 │   │   └── tasks2.0.txt
 │   └── Utils/
 │
 ├── Frontend/
 │   ├── .env
+│   ├── .gitignore
 │   ├── eslint.config.js
 │   ├── index.css
 │   ├── index.html
 │   ├── package.json
 │   ├── postcss.config.js
+│   ├── stylingCodeofVenueVendorProfile.tsx
 │   ├── tailwind.config.js
+│   ├── TempVenueVendorProfile.tsx
 │   ├── tsconfig.app.json
 │   ├── tsconfig.json
 │   ├── tsconfig.node.json
@@ -62,18 +71,24 @@ EventWala-A-Event-Management-Saas-application/
 │       │   ├── AuthForm.tsx
 │       │   ├── Dashboard.tsx
 │       │   ├── EventsPage.jsx
+│       │   ├── MapComponent.jsx
 │       │   ├── StarryBackground.tsx
+│       │   ├── Testpage.tsx
 │       │   ├── UserProfilePage.tsx
 │       │   ├── VendorDashboard.tsx
 │       │   └── VenueVendorProfile.tsx
 │       ├── config/
 │       │   └── firebase.ts
 │       ├── context/
-│       │   └── EventTypeContext.tsx
+│       │   ├── EventTypeContext.tsx
+│       │   └── LocationContext.tsx
 │       ├── hooks/
-│       │   └── useAuth.ts
+│       │   ├── useAuth.ts
+│       │   └── useLocation.ts
 │       └── images/
 │           ├── BrandLogo.png
+│           ├── gps.png
+│           ├── gps.png:Zone.Identifier
 │           └── UserAvatars/
 │               ├── Female.png
 │               └── Male.png

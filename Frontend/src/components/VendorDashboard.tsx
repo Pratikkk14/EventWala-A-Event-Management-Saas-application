@@ -1,152 +1,248 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Chart from "chart.js/auto";
+import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from "react-router-dom";
+import toast from 'react-hot-toast';
+
+// Types
+interface ChartData {
+  growth: {
+    labels: string[];
+    data: number[];
+  };
+  category: {
+    labels: string[];
+    data: number[];
+  };
+}
+
+interface Order {
+  invoice: string;
+  date: string;
+  customer: string;
+  customerEmail: string;
+  customerAvatar: string;
+  eventType: string;
+  amount: string;
+  status: 'Completed' | 'Pending';
+  services: string[];
+}
+
+interface Deal {
+  icon: 'briefcase' | 'heart' | 'cake';
+  title: string;
+  description: string;
+  price: string;
+  color: string;
+}
+
+// Mock Data Constants
+const CHART_DATA: ChartData = {
+  growth: {
+    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
+    data: [1700, 3200, 2500, 890, 2100, 2400, 3400],
+  },
+  category: {
+    labels: ["Weddings", "Corporate", "Parties", "Concerts", "Expos"],
+    data: [45, 78, 52, 22, 65],
+  },
+};
+
+const RECENT_ORDERS: Order[] = [
+  {
+    invoice: "INV-2024-001",
+    date: "Nov 15, 2024",
+    customer: "Olivia Martin",
+    customerEmail: "olivia.martin@email.com",
+    customerAvatar: "https://i.pravatar.cc/40?u=olivia",
+    eventType: "Wedding Reception",
+    amount: "$2,500.00",
+    status: "Completed",
+    services: [
+      "Event planning and coordination",
+      "Venue setup and decoration",
+      "Audio/visual equipment",
+      "On-site event management",
+    ],
+  },
+  {
+    invoice: "INV-2024-002",
+    date: "Nov 14, 2024",
+    customer: "Jackson Lee",
+    customerEmail: "jackson.lee@email.com",
+    customerAvatar: "https://i.pravatar.cc/40?u=jackson",
+    eventType: "Corporate Gala",
+    amount: "$8,500.00",
+    status: "Completed",
+    services: [
+      "Venue rental",
+      "Catering services",
+      "Corporate branding",
+      "Keynote speaker coordination",
+    ],
+  },
+  {
+    invoice: "INV-2024-003",
+    date: "Nov 13, 2024",
+    customer: "Isabella Nguyen",
+    customerEmail: "isabella.nguyen@email.com",
+    customerAvatar: "https://i.pravatar.cc/40?u=isabella",
+    eventType: "Birthday Party",
+    amount: "$850.00",
+    status: "Pending",
+    services: ["Party decorations", "Photography", "Music arrangement"],
+  },
+  {
+    invoice: "INV-2024-004",
+    date: "Nov 12, 2024",
+    customer: "William Kim",
+    customerEmail: "will@email.com",
+    customerAvatar: "https://i.pravatar.cc/40?u=william",
+    eventType: "Product Launch",
+    amount: "$4,200.00",
+    status: "Completed",
+    services: [
+      "Launch event planning",
+      "Venue setup",
+      "Product demo stations",
+      "Guest management",
+    ],
+  },
+];
+
+const FEATURED_DEALS: Deal[] = [
+  {
+    icon: "briefcase",
+    title: "Corporate Event Bonanza",
+    description:
+      "Book your next corporate event with us and get a free catering upgrade.",
+    price: "Save up to 30%",
+    color: "from-orange-300 to-orange-400",
+  },
+  {
+    icon: "heart",
+    title: "Wedding Dreams Package",
+    description:
+      "Complete wedding planning with photography, decoration, and catering included.",
+    price: "Starting at $1,999",
+    color: "from-pink-300 to-pink-400",
+  },
+  {
+    icon: "cake",
+    title: "Birthday Bash Special",
+    description:
+      "Make birthdays memorable with our all-inclusive party packages for all ages.",
+    price: "From $299",
+    color: "from-purple-300 to-purple-400",
+  },
+];
 
 // The main VendorDashboard component that contains all the UI and logic
 const VendorDashboard = () => {
-  // State to manage UI elements
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentDealSlide, setCurrentDealSlide] = useState(0);
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-  const [invoiceData, setInvoiceData] = useState({});
 
-  // Hardcoded data for the dashboard
-  const chartData = {
-    growth: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
-      data: [1700, 3200, 2500, 890, 2100, 2400, 3400],
-    },
-    category: {
-      labels: ["Weddings", "Corporate", "Parties", "Concerts", "Expos"],
-      data: [45, 78, 52, 22, 65],
-    },
+  // Authentication and navigation hooks
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [firstName] = user?.displayName?.split(' ') || [''];
+
+  // UI State interface
+  interface UIState {
+    sidebar: boolean;
+    userMenu: boolean;
+    dealSlide: number;
+    invoiceModal: boolean;
+    invoiceData: Order | {};
+  }
+
+  // UI State management
+  const [uiState, setUIState] = useState<UIState>({
+    sidebar: false,
+    userMenu: false,
+    dealSlide: 0,
+    invoiceModal: false,
+    invoiceData: {},
+  });
+
+  // Refs
+  const hasWelcomed = useRef(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // UI State update handlers
+  const updateUIState = (key: keyof UIState, value: any) => {
+    setUIState(prev => ({ ...prev, [key]: value }));
   };
 
-  const recentOrders = [
-    {
-      invoice: "INV-2024-001",
-      date: "Nov 15, 2024",
-      customer: "Olivia Martin",
-      customerEmail: "olivia.martin@email.com",
-      customerAvatar: "https://i.pravatar.cc/40?u=olivia",
-      eventType: "Wedding Reception",
-      amount: "$2,500.00",
-      status: "Completed",
-      services: [
-        "Event planning and coordination",
-        "Venue setup and decoration",
-        "Audio/visual equipment",
-        "On-site event management",
-      ],
-    },
-    {
-      invoice: "INV-2024-002",
-      date: "Nov 14, 2024",
-      customer: "Jackson Lee",
-      customerEmail: "jackson.lee@email.com",
-      customerAvatar: "https://i.pravatar.cc/40?u=jackson",
-      eventType: "Corporate Gala",
-      amount: "$8,500.00",
-      status: "Completed",
-      services: [
-        "Venue rental",
-        "Catering services",
-        "Corporate branding",
-        "Keynote speaker coordination",
-      ],
-    },
-    {
-      invoice: "INV-2024-003",
-      date: "Nov 13, 2024",
-      customer: "Isabella Nguyen",
-      customerEmail: "isabella.nguyen@email.com",
-      customerAvatar: "https://i.pravatar.cc/40?u=isabella",
-      eventType: "Birthday Party",
-      amount: "$850.00",
-      status: "Pending",
-      services: ["Party decorations", "Photography", "Music arrangement"],
-    },
-    {
-      invoice: "INV-2024-004",
-      date: "Nov 12, 2024",
-      customer: "William Kim",
-      customerEmail: "will@email.com",
-      customerAvatar: "https://i.pravatar.cc/40?u=william",
-      eventType: "Product Launch",
-      amount: "$4,200.00",
-      status: "Completed",
-      services: [
-        "Launch event planning",
-        "Venue setup",
-        "Product demo stations",
-        "Guest management",
-      ],
-    },
-  ];
+  // Welcome message effect
+  useEffect(() => {
+    if (!hasWelcomed.current && firstName) {
+      toast.success(`Welcome, ${firstName}!`);
+      hasWelcomed.current = true;
+    }
+  }, [firstName]);
 
-  const featuredDeals = [
-    {
-      icon: "briefcase",
-      title: "Corporate Event Bonanza",
-      description:
-        "Book your next corporate event with us and get a free catering upgrade.",
-      price: "Save up to 30%",
-      color: "from-orange-300 to-orange-400",
-    },
-    {
-      icon: "heart",
-      title: "Wedding Dreams Package",
-      description:
-        "Complete wedding planning with photography, decoration, and catering included.",
-      price: "Starting at $1,999",
-      color: "from-pink-300 to-pink-400",
-    },
-    {
-      icon: "cake",
-      title: "Birthday Bash Special",
-      description:
-        "Make birthdays memorable with our all-inclusive party packages for all ages.",
-      price: "From $299",
-      color: "from-purple-300 to-purple-400",
-    },
-  ];
+  // Click outside handler for user menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node) &&
+        uiState.userMenu
+      ) {
+        updateUIState('userMenu', false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [uiState.userMenu]);
 
-  // Functions to handle UI interactions
+  // Use the constants for data
+  const chartData = CHART_DATA;
+  const recentOrders = RECENT_ORDERS;
+  const featuredDeals = FEATURED_DEALS;
+
+  // UI interaction handlers
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    updateUIState('sidebar', !uiState.sidebar);
   };
 
   const nextSlide = () => {
-    setCurrentDealSlide((prev) => (prev + 1) % featuredDeals.length);
+    updateUIState('dealSlide', (uiState.dealSlide + 1) % featuredDeals.length);
   };
 
   const prevSlide = () => {
-    setCurrentDealSlide(
-      (prev) => (prev - 1 + featuredDeals.length) % featuredDeals.length
+    updateUIState(
+      'dealSlide',
+      (uiState.dealSlide - 1 + featuredDeals.length) % featuredDeals.length
     );
   };
 
-  const openInvoiceModal = (data) => {
-    setInvoiceData(data);
-    setIsInvoiceModalOpen(true);
+  const openInvoiceModal = (data: Order) => {
+    updateUIState('invoiceData', data);
+    updateUIState('invoiceModal', true);
   };
 
   const closeInvoiceModal = () => {
-    setIsInvoiceModalOpen(false);
-    setInvoiceData({});
+    updateUIState('invoiceModal', false);
+    updateUIState('invoiceData', {});
   };
 
-  // useEffect hooks to handle side effects like chart rendering and carousel auto-play
-  useEffect(() => {
-    // Chart.js for Growth Analysis
-    const growthCtx = document.getElementById("growthChart").getContext("2d");
+  // Chart configuration and rendering
+  const initializeCharts = (data: ChartData) => {
+    // Growth Analysis Chart
+    const growthCanvas = document.getElementById("growthChart") as HTMLCanvasElement;
+    const growthCtx = growthCanvas?.getContext("2d");
+    if (!growthCtx) return;
+
     const growthChart = new Chart(growthCtx, {
       type: "line",
       data: {
-        labels: chartData.growth.labels,
+        labels: data.growth.labels,
         datasets: [
           {
             label: "Revenue",
-            data: chartData.growth.data,
+            data: data.growth.data,
             borderColor: "#FFB347",
             backgroundColor: "rgba(255, 179, 71, 0.1)",
             fill: true,
@@ -178,8 +274,9 @@ const VendorDashboard = () => {
           y: {
             beginAtZero: true,
             ticks: {
-              callback: function (value) {
-                return "$" + value / 1000 + "k";
+              callback: function (tickValue: number | string) {
+                const value = typeof tickValue === 'string' ? parseFloat(tickValue) : tickValue;
+                return "$" + Math.floor(value / 1000) + "k";
               },
             },
           },
@@ -187,18 +284,19 @@ const VendorDashboard = () => {
       },
     });
 
-    // Chart.js for Popular Categories
-    const categoryCtx = document
-      .getElementById("categoryChart")
-      .getContext("2d");
+    // Category Analysis Chart
+    const categoryCanvas = document.getElementById("categoryChart") as HTMLCanvasElement;
+    const categoryCtx = categoryCanvas?.getContext("2d");
+    if (!categoryCtx) return;
+
     const categoryChart = new Chart(categoryCtx, {
       type: "bar",
       data: {
-        labels: chartData.category.labels,
+        labels: data.category.labels,
         datasets: [
           {
             label: "Event Count",
-            data: chartData.category.data,
+            data: data.category.data,
             backgroundColor: [
               "rgba(255, 179, 71, 0.7)",
               "rgba(235, 192, 89, 0.7)",
@@ -242,36 +340,42 @@ const VendorDashboard = () => {
       },
     });
 
-    // Cleanup function for charts
+    // Return cleanup function
     return () => {
       growthChart.destroy();
       categoryChart.destroy();
     };
-  }, []);
+  };
+
+  // Initialize charts when component mounts or chartData changes
+  useEffect(() => {
+    const cleanup = initializeCharts(chartData);
+    return () => cleanup?.();
+  }, [chartData]);
 
   // Effect for the carousel auto-play
   useEffect(() => {
     const carouselInterval = setInterval(nextSlide, 5000);
     return () => clearInterval(carouselInterval);
-  }, [currentDealSlide]);
+  }, [uiState.dealSlide]);
 
   // Effect to handle modal overflow and keyboard events
   useEffect(() => {
-    if (isInvoiceModalOpen) {
+    if (uiState.invoiceModal) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "auto";
     }
 
-    const handleEscapeKey = (e) => {
-      if (e.key === "Escape" && isInvoiceModalOpen) {
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && uiState.invoiceModal) {
         closeInvoiceModal();
       }
     };
 
     document.addEventListener("keydown", handleEscapeKey);
     return () => document.removeEventListener("keydown", handleEscapeKey);
-  }, [isInvoiceModalOpen]);
+  }, [uiState.invoiceModal]);
 
   // Icon components as SVG for a robust solution without external imports
   interface IconProps extends React.SVGProps<SVGSVGElement> {
@@ -658,7 +762,7 @@ const VendorDashboard = () => {
     <aside
       id="sidebar"
       className={`w-64 flex-shrink-0 bg-white border-r border-gray-200 flex-col fixed lg:relative lg:flex h-full lg:h-auto z-20 ${
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        uiState.sidebar ? "translate-x-0" : "-translate-x-full"
       } lg:translate-x-0 transition-transform duration-300 ease-in-out`}
     >
       <div className="h-16 flex items-center px-6 border-b border-gray-200">
@@ -726,6 +830,7 @@ const VendorDashboard = () => {
     </aside>
   );
 
+
   const Header = () => (
     <header className="sticky top-0 z-10 flex items-center h-16 px-6 bg-[#F8F3EC]/80 backdrop-blur-sm border-b border-gray-200">
       <button
@@ -743,21 +848,80 @@ const VendorDashboard = () => {
           className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-300 rounded-md focus:ring-[#EBC059] focus:border-[#EBC059]"
         />
       </div>
-      <div className="ml-auto">
-        <button className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-gray-200">
-          <CircleUserIcon className="h-6 w-6 text-gray-600" />
-        </button>
+      {/* User Info and Dropdown */}
+      <div className="ml-auto flex items-center gap-3">
+        {/* Show first name and email beside icon */}
+        <div className="hidden md:flex flex-col items-end mr-2">
+          <span className="font-semibold text-gray-800 text-base">{user?.displayName?.split(' ')[0] || 'User'}</span>
+          <span className="text-xs text-gray-500">{user?.email}</span>
+        </div>
+        <div className="relative" ref={userMenuRef}>
+          <button
+            className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-gray-200"
+            onClick={() => updateUIState('userMenu', !uiState.userMenu)}
+          >
+            <CircleUserIcon className="h-6 w-6 text-gray-600" />
+          </button>
+          {uiState.userMenu && (
+            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-30 overflow-hidden">
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center gap-3 mb-2">
+                  <CircleUserIcon className="h-8 w-8 text-[#FFB347]" />
+                  <div>
+                    <div className="font-semibold text-gray-800 text-base">
+                      Hello, {user?.displayName?.split(' ')[0] || 'User'}
+                    </div>
+                    <div className="text-xs text-gray-500">{user?.email}</div>
+                  </div>
+                </div>
+              </div>
+              <button
+                className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+                onClick={() => {
+                  updateUIState('userMenu', false);
+                  navigate('/dashboard');
+                }}
+              >
+                <HomeIcon className="mr-2 h-5 w-5 text-[#FFB347]" />
+                Go to User Dashboard
+              </button>
+              <button
+                className="flex items-center w-full px-4 py-3 text-red-500 hover:bg-red-50 transition-colors border-t border-gray-100"
+                onClick={async () => {
+                  updateUIState('userMenu', false);
+                  await logout();
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" x2="9" y1="12" y2="12" />
+                </svg>
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
 
-  const DashboardCard = ({ title, value, change, icon, iconColor }) => {
-    const IconComponent = {
+  interface DashboardCardProps {
+    title: string;
+    value: string;
+    change: string;
+    icon: 'dollar-sign' | 'credit-card' | 'star' | 'activity';
+    iconColor: string;
+  }
+
+  const DashboardCard = ({ title, value, change, icon, iconColor }: DashboardCardProps) => {
+    const iconComponents = {
       "dollar-sign": DollarSignIcon,
       "credit-card": CreditCardIcon,
       star: StarIcon,
       activity: ActivityIcon,
-    }[icon];
+    };
+    const IconComponent = iconComponents[icon];
 
     return (
       <div className="card p-5 flex flex-col">
@@ -877,7 +1041,7 @@ const VendorDashboard = () => {
         <div
           id="deals-carousel"
           className="flex transition-transform duration-500 ease-in-out"
-          style={{ transform: `translateX(-${currentDealSlide * 100}%)` }}
+          style={{ transform: `translateX(-${uiState.dealSlide * 100}%)` }}
         >
           {featuredDeals.map((deal, index) => {
             const IconComponent = {
@@ -936,11 +1100,11 @@ const VendorDashboard = () => {
             <button
               key={index}
               className={`deal-indicator w-2 h-2 rounded-full transition-all ${
-                currentDealSlide === index
+                uiState.dealSlide === index
                   ? "bg-[#FFB347]"
                   : "bg-gray-300 hover:bg-gray-400"
               }`}
-              onClick={() => setCurrentDealSlide(index)}
+              onClick={() => updateUIState('dealSlide', index)}
             ></button>
           ))}
         </div>
@@ -997,7 +1161,7 @@ const VendorDashboard = () => {
         <Sidebar />
         <div
           className={`fixed inset-0 bg-black/60 z-10 lg:hidden ${
-            isSidebarOpen ? "" : "hidden"
+            uiState.sidebar ? "" : "hidden"
           }`}
           onClick={toggleSidebar}
         ></div>
@@ -1194,7 +1358,7 @@ const VendorDashboard = () => {
       {/* Invoice Receipt Modal */}
       <div
         className={`fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 ${
-          isInvoiceModalOpen ? "" : "hidden"
+          uiState.invoiceModal ? "" : "hidden"
         }`}
         onClick={closeInvoiceModal}
       >
@@ -1234,14 +1398,14 @@ const VendorDashboard = () => {
                     Invoice Number
                   </label>
                   <p className="font-mono text-[#FFB347] font-medium">
-                    #{invoiceData.invoice}
+                    #{(uiState.invoiceData as Order).invoice}
                   </p>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase">
                     Date
                   </label>
-                  <p className="text-gray-800">{invoiceData.date}</p>
+                  <p className="text-gray-800">{(uiState.invoiceData as Order).date}</p>
                 </div>
               </div>
 
@@ -1250,7 +1414,7 @@ const VendorDashboard = () => {
                   Customer
                 </label>
                 <p className="text-gray-800 font-medium">
-                  {invoiceData.customer}
+                  {(uiState.invoiceData as Order).customer}
                 </p>
               </div>
 
@@ -1258,7 +1422,7 @@ const VendorDashboard = () => {
                 <label className="text-xs font-medium text-gray-500 uppercase">
                   Event Type
                 </label>
-                <p className="text-gray-800">{invoiceData.eventType}</p>
+                <p className="text-gray-800">{(uiState.invoiceData as Order).eventType}</p>
               </div>
 
               <div className="border-t border-gray-200 pt-4">
@@ -1267,7 +1431,7 @@ const VendorDashboard = () => {
                     Total Amount
                   </span>
                   <span className="text-2xl font-bold text-[#FFB347]">
-                    {invoiceData.amount}
+                    {(uiState.invoiceData as Order).amount}
                   </span>
                 </div>
               </div>
@@ -1277,10 +1441,9 @@ const VendorDashboard = () => {
                   Services Included:
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  {invoiceData.services &&
-                    invoiceData.services.map((service, index) => (
-                      <li key={index}>• {service}</li>
-                    ))}
+                  {(uiState.invoiceData as Order).services?.map((service, index) => (
+                    <li key={index}>• {service}</li>
+                  ))}
                 </ul>
               </div>
 

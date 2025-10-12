@@ -19,11 +19,23 @@ const Testpage: React.FC = () => {
     alert("Token logged to console!");
   };
 
-  const handleRedirect = () => {
-    navigate(`/test-venue-vendor-profile`);
+  const handleUid = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) {
+      alert("No user is signed in.");
+      return;
+    }
+    const uid =  user.uid;
+    console.log("Firebase UID :", uid);
+    alert("UID logged to console!");
   };
-    const handleDemoRedirect = () => {
-    navigate(`/all-event-map`);
+
+  // const handleRedirect = () => {
+  //   navigate(`/test-venue-vendor-profile`);
+  // };
+  const handleDemoRedirect = () => {
+    navigate(`/vendor-dashboard`);
   };
 
   const handleFetchVenue = async () => {
@@ -59,6 +71,20 @@ const Testpage: React.FC = () => {
         Get Firebase Auth Token
       </button>
       <button
+        onClick={handleUid}
+        style={{
+          padding: "0.5rem 1rem",
+          background: "#26e3b7ff",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          marginRight: "1rem",
+        }}
+      >
+        Get Firebase UID
+      </button>
+      <button
         onClick={handleDemoRedirect}
         style={{
           padding: "0.5rem 1rem",
@@ -70,7 +96,7 @@ const Testpage: React.FC = () => {
           marginRight: "1rem",
         }}
       >
-        Go to Map
+        Vendor Dashboard
       </button>
       <button
         onClick={handleFetchVenue}

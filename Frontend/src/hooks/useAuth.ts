@@ -14,6 +14,7 @@ import { auth } from '../config/firebase';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [mongoUser, setMongoUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,6 +25,25 @@ export const useAuth = () => {
 
     return unsubscribe;
   }, []);
+
+useEffect(() => {
+  const fetchMongoUser = async () => {
+    if (user) {
+      const token = await user.getIdToken();
+      fetch(`/api/DB_Routes/user/${user.uid}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then(res => res.json())
+        .then(data => setMongoUser(data))
+        .catch(() => setMongoUser(null));
+    } else {
+      setMongoUser(null);
+    }
+  };
+  fetchMongoUser();
+}, [user]);
 
   const signIn = async (email: string, password: string) => {
     return signInWithEmailAndPassword(auth, email, password);
@@ -117,6 +137,7 @@ export const useAuth = () => {
 
   return {
     user,
+    mongoUser,
     loading,
     signIn,
     signUp,

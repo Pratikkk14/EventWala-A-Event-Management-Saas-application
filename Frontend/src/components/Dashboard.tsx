@@ -26,7 +26,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-import defaultAvatar from "../images/UserAvatars/Male.png";
+// Use absolute path from public directory for default avatar
+const defaultAvatar = "/images/UserAvatars/Male.png";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard: React.FC = () => {
@@ -367,10 +368,10 @@ const Dashboard: React.FC = () => {
             </div>
             <div>
               <div className="text-white font-medium text-lg line-clamp-1">
-                {user?.displayName || "Pratik Pujari"}
+                {user?.displayName || "No UserName"}
               </div>
               <div className="text-purple-300 text-xs line-clamp-1">
-                {user?.email || "pratik146971@gmail.com"}
+                {user?.email || "No Email"}
               </div>
             </div>
           </div>
@@ -392,48 +393,57 @@ const Dashboard: React.FC = () => {
                 Find Events
               </span>
             </button>
-            <button className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group">
+            <button
+              className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group"
+              onClick={() => navigate("/my-bookings")}
+            >
               <BookOpen className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <span
-                className={`text-sm font-medium transition-opacity duration-300 ${
-                  isSidebarExpanded
-                    ? "opacity-100"
-                    : "opacity-0 absolute left-16"
-                }`}
+              className={`text-sm font-medium transition-opacity duration-300 ${
+                isSidebarExpanded
+                ? "opacity-100"
+                : "opacity-0 absolute left-16"
+              }`}
               >
-                My Bookings
+              My Bookings
               </span>
             </button>
-            <button className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group">
+            <button
+              className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group"
+              onClick={() => navigate("/media-hub")}
+            >
               <Users className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <span
-                className={`text-sm font-medium transition-opacity duration-300 ${
-                  isSidebarExpanded
-                    ? "opacity-100"
-                    : "opacity-0 absolute left-16"
-                }`}
+              className={`text-sm font-medium transition-opacity duration-300 ${
+                isSidebarExpanded
+                ? "opacity-100"
+                : "opacity-0 absolute left-16"
+              }`}
               >
-                My Guests
+              Event Media Hub
               </span>
             </button>
           </nav>
 
           {/* Vendor CTA */}
-          <div
+            <div
             className={`bg-gradient-to-r from-purple-600/20 to-indigo-600/20 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-6 text-center hover:scale-105 transition-transform duration-300 ${
               isSidebarExpanded ? "opacity-100" : "opacity-0 hidden"
             }`}
-          >
+            >
             <h3 className="text-xl font-bold text-white mb-2">
               Become a Vendor
             </h3>
             <p className="text-purple-200 text-sm mb-4">
               List your own venue and services. Reach thousands of customers.
             </p>
-            <button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300">
+            <button
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300"
+              onClick={() => navigate("/become-vendor")}
+            >
               Get Started
             </button>
-          </div>
+            </div>
         </div>
       </aside>
 

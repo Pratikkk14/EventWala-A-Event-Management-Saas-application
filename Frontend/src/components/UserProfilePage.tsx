@@ -23,19 +23,75 @@ import {
 import toast from "react-hot-toast";
 
 import { useAuth } from "../hooks/useAuth";
-
-// Avatar type definition
-type AvatarType = {
-  data: ArrayBuffer | Uint8Array;
-  contentType: string;
-} | undefined;
+import appwriteStorage from '../../services/appwrite'; 
 
 
-const initialProfileData = {
+// Type definitions matching MongoDB schema
+interface Avatar {
+  url?: string;
+  fileName?: string;
+  fileId?: string;
+};
+
+interface PersonalDetails {
+  dob?: string;
+  gender?: "male" | "female" | "other" | "prefer-not-to-say";
+}
+
+interface ProfileData {
+  name: string;
+  email: string;
+  phone: string;
+  address: {
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+  };
+  socialProfiles: {
+    facebook?: string;
+    instagram?: string;
+    linkedin?: string;
+    twitter?: string;
+  };
+  personalDetails: PersonalDetails;
+  preferences: {
+    notifications?: boolean;
+    language?: string;
+    marketing?: boolean;
+  };
+  accountManagement: {
+    role?: "user" | "vendor" | "admin";
+    status?: "active" | "suspended" | "deactivated";
+    verification?: string;
+  };
+  activity: {
+    lastLogin?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    hostedEvents?: number;
+    attendedEvents?: number;
+    bookmarkedVenues?: number;
+  };
+  payment: {
+    defaultPaymentMethod?: string;
+    billingAddress?: string;
+  };
+  avatar?: Avatar;
+}
+
+const initialProfileData: ProfileData = {
   name: "",
   email: "",
   phone: "",
-  address: "",
+  address: {
+    street: "",
+    city: "",
+    state: "",
+    country: "",
+    postalCode: "",
+  },
   socialProfiles: {
     facebook: "",
     instagram: "",
@@ -43,18 +99,18 @@ const initialProfileData = {
     twitter: "",
   },
   personalDetails: {
-    dob: "",
-    gender: "",
+    dob: undefined,
+    gender: undefined,
   },
   preferences: {
     notifications: false,
-    language: "",
+    language: undefined,
     marketing: false,
   },
   accountManagement: {
-    role: "",
-    status: "",
-    verification: "",
+    role: undefined,
+    status: undefined,
+    verification: undefined,
   },
   activity: {
     lastLogin: "",
@@ -65,37 +121,53 @@ const initialProfileData = {
     bookmarkedVenues: 0,
   },
   payment: {
-    defaultPaymentMethod: "",
-    billingAddress: "",
+    defaultPaymentMethod: undefined,
+    billingAddress: undefined,
   },
-  avatar: undefined as AvatarType, // Explicitly type avatar
+  avatar: {
+    url: undefined,
+    fileName: undefined,
+    fileId: undefined,
+  }
 };
 
-type ProfileData = typeof initialProfileData & { avatar: AvatarType };
-
+// Progress calculator now handles the new schema structure
 const progressCalculator = (data: ProfileData, profileImage: File | null) => {
   let completedFields = 0;
-  const totalFields = 17;
+  const totalFields = 18; // Updated for new schema
 
-  if (profileImage) completedFields++;
+  if (profileImage || data.avatar?.url) completedFields++;
   if (data.name) completedFields++;
   if (data.email) completedFields++;
   if (data.phone) completedFields++;
-  if (data.address) completedFields++;
-  if (Object.values(data.socialProfiles).some((url) => url)) completedFields++;
-  if (data.personalDetails.dob) completedFields++;
-  if (data.personalDetails.gender) completedFields++;
-  if (data.preferences.notifications) completedFields++;
-  if (data.preferences.language) completedFields++;
-  if (data.preferences.marketing) completedFields++;
-  if (data.accountManagement.role) completedFields++;
-  if (data.accountManagement.status) completedFields++;
-  if (data.accountManagement.verification) completedFields++;
-  if (data.payment.defaultPaymentMethod) completedFields++;
-  if (data.payment.billingAddress) completedFields++;
+  
+  // Address fields
+  if (data.address && (data.address.street || data.address.city || data.address.state || 
+      data.address.country || data.address.postalCode)) completedFields++;
 
-  // Last login is often system-generated, so we can consider it "complete" if it exists
-  if (data.activity.lastLogin) completedFields++;
+  // Social profiles
+  if (data.socialProfiles && Object.values(data.socialProfiles).some(url => url)) completedFields++;
+  
+  // Personal details
+  if (data.personalDetails?.dob) completedFields++;
+  if (data.personalDetails?.gender) completedFields++;
+  
+  // Preferences
+  if (typeof data.preferences?.notifications === 'boolean') completedFields++;
+  if (data.preferences?.language) completedFields++;
+  if (typeof data.preferences?.marketing === 'boolean') completedFields++;
+  
+  // Account management
+  if (data.accountManagement?.role) completedFields++;
+  if (data.accountManagement?.status) completedFields++;
+  if (data.accountManagement?.verification) completedFields++;
+  
+  // Payment info
+  if (data.payment?.defaultPaymentMethod) completedFields++;
+  if (data.payment?.billingAddress) completedFields++;
+  
+  // Activity (last login is system-generated)
+  if (data.activity?.lastLogin) completedFields++;
 
   return (completedFields / totalFields) * 100;
 };
@@ -106,8 +178,6 @@ const formatDateTime = (dateString: string) => {
   if (isNaN(date.getTime())) return null;
   return date.toLocaleDateString() + " at " + date.toLocaleTimeString();
 };
-
-import type { ReactNode } from "react";
 
 const ProfileSection = ({
   title,
@@ -136,12 +206,22 @@ type ProfileItemProps = {
 };
 
 const ProfileItem: React.FC<ProfileItemProps> = ({ icon: Icon, label, value }) => {
-  if (!value && value !== 0) return null;
+  // Return null for any falsy value except 0, or if value is an empty object/array
+  if ((!value && value !== 0) || 
+      (typeof value === 'object' && value !== null && Object.keys(value).length === 0)) {
+    return null;
+  }
+  
+  // For arrays and objects, attempt to create a string representation
+  const displayValue = typeof value === 'object' && value !== null
+    ? JSON.stringify(value)
+    : String(value);
+
   return (
     <div className="flex items-center text-white/80">
       <Icon className="w-5 h-5 mr-3 text-purple-400" />
       <span className="font-medium mr-2">{label}:</span>
-      <span className="text-white">{value}</span>
+      <span className="text-white">{displayValue}</span>
     </div>
   );
 };
@@ -208,25 +288,66 @@ const EditProfileForm: React.FC<EditProfileFormProps> = React.memo(
       setFormData((prevData) => {
         let finalValue: any = value;
         if (type === "number") {
-          finalValue = value ? parseInt(value, 10) : null;
+          finalValue = value ? parseInt(value, 10) : 0;
         } else if (type === "checkbox") {
           finalValue = checked;
         }
 
         if (section) {
-            return {
-            ...prevData,
-            [section]: {
-              ...(typeof prevData[section] === "object" && prevData[section] !== null ? prevData[section] : {}),
-              [field]: finalValue,
-            },
-            };
-        } else {
-          return {
-            ...prevData,
-            [field]: finalValue,
-          };
+          // Deep clone the previous data
+          const newData = { ...prevData };
+
+          // Handle specific sections
+          switch(section) {
+            case 'address':
+              newData.address = {
+                ...prevData.address,
+                [field]: finalValue
+              };
+              break;
+            case 'personalDetails':
+              newData.personalDetails = {
+                ...prevData.personalDetails,
+                [field]: finalValue
+              };
+              break;
+            case 'preferences':
+              newData.preferences = {
+                ...prevData.preferences,
+                [field]: finalValue
+              };
+              break;
+            case 'socialProfiles':
+              newData.socialProfiles = {
+                ...prevData.socialProfiles,
+                [field]: finalValue
+              };
+              break;
+            case 'activity':
+              newData.activity = {
+                ...prevData.activity,
+                [field]: finalValue
+              };
+              break;
+            case 'payment':
+              newData.payment = {
+                ...prevData.payment,
+                [field]: finalValue
+              };
+              break;
+            default:
+              newData[section] = {
+                ...prevData[section],
+                [field]: finalValue
+              };
+          }
+          return newData;
         }
+        
+        return {
+          ...prevData,
+          [field]: finalValue,
+        };
       });
     };
 
@@ -274,20 +395,59 @@ const EditProfileForm: React.FC<EditProfileFormProps> = React.memo(
                 className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
               />
             </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">Address:</span>
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => handleInputChange(e, null, "address")}
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
+            {/* Address Fields */}
+            <div className="space-y-3">
+              <label className="block">
+                <span className="text-white/80 font-medium">Street:</span>
+                <input
+                  type="text"
+                  value={formData.address?.street || ''}
+                  onChange={(e) => handleInputChange(e, "address", "street")}
+                  className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
+                />
+              </label>
+              <label className="block">
+                <span className="text-white/80 font-medium">City:</span>
+                <input
+                  type="text"
+                  value={formData.address?.city || ''}
+                  onChange={(e) => handleInputChange(e, "address", "city")}
+                  className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
+                />
+              </label>
+              <label className="block">
+                <span className="text-white/80 font-medium">State:</span>
+                <input
+                  type="text"
+                  value={formData.address?.state || ''}
+                  onChange={(e) => handleInputChange(e, "address", "state")}
+                  className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
+                />
+              </label>
+              <label className="block">
+                <span className="text-white/80 font-medium">Country:</span>
+                <input
+                  type="text"
+                  value={formData.address?.country || ''}
+                  onChange={(e) => handleInputChange(e, "address", "country")}
+                  className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
+                />
+              </label>
+              <label className="block">
+                <span className="text-white/80 font-medium">Postal Code:</span>
+                <input
+                  type="text"
+                  value={formData.address?.postalCode || ''}
+                  onChange={(e) => handleInputChange(e, "address", "postalCode")}
+                  className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
+                />
+              </label>
+            </div>
             <label className="block">
               <span className="text-white/80 font-medium">Date of Birth:</span>
               <input
                 type="date"
-                value={formData.personalDetails.dob}
+                value={formData.personalDetails?.dob || ""}
                 onChange={(e) => handleInputChange(e, "personalDetails", "dob")}
                 className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
               />
@@ -296,7 +456,7 @@ const EditProfileForm: React.FC<EditProfileFormProps> = React.memo(
               <span className="text-white/80 font-medium">Gender:</span>
               <input
                 type="text"
-                value={formData.personalDetails.gender}
+                value={formData.personalDetails?.gender || ""}
                 onChange={(e) =>
                   handleInputChange(e, "personalDetails", "gender")
                 }
@@ -488,6 +648,7 @@ export default function UserProfilePage() {
   const [profileData, setProfileData] = useState(initialProfileData);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [avatarUploadResult, setAvatarUploadResult] = useState<Avatar | null>(null);
   const [completion, setCompletion] = useState(0);
   const [mode, setMode] = useState("view"); // 'view' or 'edit'
   const [formData, setFormData] = useState(initialProfileData);
@@ -521,77 +682,71 @@ export default function UserProfilePage() {
         const { data } = await response.json();
 
         // Transform the data to match your frontend structure
-        const transformedData = {
-          name: `${data.firstName} ${data.lastName}`,
-          email: data.email,
-          phone: data.phone,
-          address: data.address
-            ? [
-                data.address.street,
-                data.address.city,
-                data.address.state,
-                data.address.country,
-                data.address.postalCode,
-              ]
-                .filter(Boolean)
-                .join(", ")
-            : "",
-          socialProfiles: data.socialProfiles || {},
+        const transformedData: ProfileData = {
+          name: data.firstName + (data.lastName ? ` ${data.lastName}` : ""),
+          email: data.email || "",
+          phone: data.phone || "",
+          address: {
+            street: data.address?.street || "",
+            city: data.address?.city || "",
+            state: data.address?.state || "",
+            country: data.address?.country || "",
+            postalCode: data.address?.postalCode || "",
+          },
+          socialProfiles: {
+            facebook: data.socialProfiles?.facebook || "",
+            twitter: data.socialProfiles?.twitter || "",
+            instagram: data.socialProfiles?.instagram || "",
+            linkedin: data.socialProfiles?.linkedin || "",
+          },
           personalDetails: {
-            dob: data.dateOfBirth ?? "",
-            gender: data.gender ?? "",
+            dob: data.dateOfBirth || "",
+            gender: (data.gender as "male" | "female" | "other" | "prefer-not-to-say") || "prefer-not-to-say",
           },
           preferences: {
             notifications: data.preferences?.eventNotifications ?? false,
-            language: data.preferences?.language ?? "",
+            language: data.preferences?.language || "",
             marketing: data.preferences?.marketingEmails ?? false,
           },
           accountManagement: {
-            role: data.role ?? "",
-            status: data.accountStatus ?? "",
-            verification: data.isVerified ? "Verified" : "Unverified",
+            role: (data.role as "user" | "vendor" | "admin") || "user",
+            status: (data.accountStatus as "active" | "suspended" | "deactivated") || "active",
+            verification: data.isVerified ? "Verified" : "Not Verified",
           },
           activity: {
-            lastLogin: data.lastLogin ?? "",
-            createdAt: data.createdAt ?? "",
-            updatedAt: data.updatedAt ?? "",
-            hostedEvents: data.eventsHosted?.length ?? 0,
-            attendedEvents: data.eventsAttended?.length ?? 0,
-            bookmarkedVenues: data.bookmarks?.length ?? 0,
-            guests : data.guests ?? 0,
+            lastLogin: data.lastLogin || "",
+            createdAt: data.createdAt || "",
+            updatedAt: data.updatedAt || "",
+            hostedEvents: data.eventsHosted?.length || 0,
+            attendedEvents: data.eventsAttended?.length || 0,
+            bookmarkedVenues: data.bookmarks?.length || 0,
           },
           payment: {
-            defaultPaymentMethod: data.defaultPaymentMethod ?? "",
-            billingAddress: data.billingAddress
-              ? [
-                  data.billingAddress.street,
-                  data.billingAddress.city,
-                  data.billingAddress.state,
-                  data.billingAddress.country,
-                  data.billingAddress.postalCode,
-                ]
-                  .filter(Boolean)
-                  .join(", ")
-              : "",
+            defaultPaymentMethod: data.defaultPaymentMethod || "",
+            billingAddress: data.billingAddress ? 
+              [
+                data.billingAddress.street,
+                data.billingAddress.city,
+                data.billingAddress.state,
+                data.billingAddress.country,
+                data.billingAddress.postalCode
+              ].filter(Boolean).join(", ") : ""
           },
-          avatar: data.avatar,
+          avatar: data.avatar ? {
+            url: data.avatar.url || "",
+            fileName: data.avatar.fileName || "",
+            fileId: data.avatar.fileId || ""
+          } : undefined,
         };
 
         setProfileData(transformedData);
         setFormData(transformedData); // Update form data
 
-        // If there's an avatar, create the preview
-        if (data.avatar?.data) {
-          try {
-            const imageUrl = `data:${data.avatar.contentType};base64,${arrayBufferToBase64(data.avatar.data)}`;
-            setProfileImagePreview(imageUrl);
-          } catch (err) {
-            setProfileImagePreview("/images/UserAvatars/Male.png");
-            toast.error("Failed to load profile picture, using fallback image.");
-          }
+        // If there's an avatar URL, use it for preview
+        if (data.avatar && typeof data.avatar.url === "string" && data.avatar.url.length > 0) {
+          setProfileImagePreview(data.avatar.url);
         } else {
           setProfileImagePreview("/images/UserAvatars/Male.png");
-          toast("No profile picture found, using fallback image.", { icon: "ℹ️" });
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -630,51 +785,111 @@ export default function UserProfilePage() {
   };
 
   const handleSave = async () => {
-    // Get the current user's UID from Firebase auth
-    if (!user?.uid) {
-      toast.error("Please login to update your profile");
-      return;
-    }
+  if (!user?.uid) {
+    toast.error("Please login to update your profile");
+    return;
+  }
 
-    const formDataToSend = new FormData();
-
-    // Add the avatar file if it exists
-    if (profileImage) {
-      formDataToSend.append("avatar", profileImage);
-    }
-
-    // Add other user data
-    formDataToSend.append("userData", JSON.stringify(formData));
-    
-    const response = await fetch(
-      `/api/DB_Routes/updateuser/${user.uid}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${await user.getIdToken()}`,
-        },
-        body: formDataToSend,
+  let avatarUploadResult: { url: string; fileName: string; fileId: string } | null = null;
+  if (profileImage) {
+    try {
+      // Upload to Appwrite
+      const result = await appwriteStorage.uploadEventHostProfile(profileImage, user.uid);
+      console.log('Upload result:', result); // Debug log
+      
+      if (result && result.success) {
+        // Get a fresh preview URL from Appwrite
+        const previewUrl = result.fileId ? appwriteStorage.getFilePreview(result.fileId) : result.url;
+        
+        const newAvatar: Avatar = {
+          url: previewUrl,
+          fileName: result.fileName || '',
+          fileId: result.fileId || ''
+        };
+        
+        // Update avatar upload result and form data
+        setAvatarUploadResult(newAvatar);
+        setFormData(prev => ({
+          ...prev,
+          avatar: newAvatar
+        }));
+        
+        setProfileImagePreview(previewUrl);
+        
+        // Log success for debugging
+        console.log('Avatar upload successful:', { 
+          result, 
+          previewUrl,
+          avatarUploadResult 
+        });
+      } else {
+        console.error('Upload result missing required fields:', result);
+        throw new Error('Upload successful but missing required fields');
       }
-    );
-
-    if (!response.ok) {
-      toast.error(`HTTP error! status: ${response.status}`);
-      return;
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload profile image');
+      return; // Exit the save function if image upload fails
     }
+  }
 
-    const result = await response.json();
-
-    if (result.success) {
-      setProfileData({
-        ...formData,
-        avatar: result.user.avatar,
-      });
-      setMode("view");
-      toast.success("Profile updated successfully!");
-    } else {
-      toast.error(result.message || "Failed to update profile");
-    }
+  // Wait for setFormData to finish before sending
+  const updatedFormData = {
+    ...formData,
+    personalDetails: {
+      ...formData.personalDetails,
+      dob: formData.personalDetails?.dob || "",
+      gender: formData.personalDetails?.gender || "prefer-not-to-say"
+    },
+    avatar: avatarUploadResult || formData.avatar
   };
+
+  const formDataToSend = new FormData();
+  formDataToSend.append("userData", JSON.stringify(updatedFormData));
+
+  const response = await fetch(
+    `/api/DB_Routes/updateuser/${user.uid}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${await user.getIdToken()}`,
+      },
+      body: formDataToSend,
+    }
+  );
+
+  if (!response.ok) {
+    toast.error(`HTTP error! status: ${response.status}`);
+    return;
+  }
+
+  const result = await response.json();
+
+  if (result.success) {
+    // Log the response data for debugging
+    console.log('Server response:', result);
+
+    // Make sure we keep the avatar information in sync
+    const updatedProfileData = {
+      ...result.user,
+      avatar: avatarUploadResult || result.user.avatar || formData.avatar
+    };
+
+    setProfileData(updatedProfileData);
+    
+    // Only update preview if we have a valid URL
+    const newAvatarUrl = formData.avatar?.url || result.user.avatar?.url;
+    if (newAvatarUrl) {
+      setProfileImagePreview(newAvatarUrl);
+    }
+
+    setMode("view");
+    toast.success("Profile updated successfully!");
+  } else {
+    console.error('Update failed:', result);
+    toast.error(result.message || "Failed to update profile");
+  }
+};
 
   const handleCancel = () => {
     setMode("view");
@@ -704,62 +919,70 @@ export default function UserProfilePage() {
           <ProfileItem
             icon={MapPin}
             label="Address"
-            value={profileData.address}
+            value={
+              profileData.address 
+                ? Object.values(profileData.address)
+                    .filter(Boolean)
+                    .join(", ")
+                : undefined
+            }
           />
           <div className="flex items-center space-x-4 pt-2">
             <span className="text-white/80 font-medium">Socials:</span>
-            {Object.entries(profileData.socialProfiles).map(([key, url]) => {
-              const allowedTypes = ["facebook", "instagram", "linkedin", "twitter"] as const;
-              return allowedTypes.includes(key as any) ? (
-                <SocialIcon key={key} type={key as typeof allowedTypes[number]} url={url} />
-              ) : null;
-            })}
+              {profileData.socialProfiles && typeof profileData.socialProfiles === "object"
+                ? Object.entries(profileData.socialProfiles).map(([key, url]) => {
+                    const allowedTypes = ["facebook", "instagram", "linkedin", "twitter"] as const;
+                    return allowedTypes.includes(key as any) ? (
+                      <SocialIcon key={key} type={key as typeof allowedTypes[number]} url={url} />
+                    ) : null;
+                  })
+                : null}
           </div>
         </ProfileSection>
         <ProfileSection title="Personal Details">
           <ProfileItem
             icon={Calendar}
             label="Date of Birth"
-            value={profileData.personalDetails.dob}
+            value={profileData.personalDetails?.dob || "Not specified"}
           />
           <ProfileItem
             icon={User}
             label="Gender"
-            value={profileData.personalDetails.gender}
+            value={profileData.personalDetails?.gender || "Not specified"}
           />
         </ProfileSection>
         <ProfileSection title="Preferences">
           <ProfileItem
             icon={Bell}
             label="Notifications"
-            value={profileData.preferences.notifications ? "Enabled" : null}
+            value={profileData.preferences?.notifications ? "Enabled" : null}
           />
           <ProfileItem
             icon={Globe}
             label="Language"
-            value={profileData.preferences.language}
+            value={profileData.preferences?.language}
           />
           <ProfileItem
             icon={Mail}
             label="Marketing"
-            value={profileData.preferences.marketing ? "Opt-in" : null}
+            value={profileData.preferences?.marketing ? "Opt-in" : null}
           />
         </ProfileSection>
         <ProfileSection title="Account Management">
           <ProfileItem
             icon={Briefcase}
             label="Role"
-            value={profileData.accountManagement.role}
+            value={profileData.accountManagement?.role}
           />
           <ProfileItem
             icon={CheckCircle}
             label="Account Status"
-            value={profileData.accountManagement.status}
+            value={profileData.accountManagement?.status}
           />
           <ProfileItem
             icon={Users}
             label="Verification"
-            value={profileData.accountManagement.verification}
+            value={profileData.accountManagement?.verification}
           />
         </ProfileSection>
         <ProfileSection title="Activity Tracking">
@@ -767,7 +990,7 @@ export default function UserProfilePage() {
             icon={Clock}
             label="Last Login"
             value={
-              profileData.activity.lastLogin
+              profileData.activity?.lastLogin
                 ? formatDateTime(profileData.activity.lastLogin)
                 : null
             }
@@ -775,29 +998,29 @@ export default function UserProfilePage() {
           <ProfileItem
             icon={BarChart2}
             label="Hosted Events"
-            value={profileData.activity.hostedEvents}
+            value={profileData.activity?.hostedEvents ?? 0}
           />
           <ProfileItem
             icon={Users}
             label="Attended Events"
-            value={profileData.activity.attendedEvents}
+            value={profileData.activity?.attendedEvents ?? 0}
           />
           <ProfileItem
             icon={Bookmark}
             label="Bookmarked Venues"
-            value={profileData.activity.bookmarkedVenues}
+            value={profileData.activity?.bookmarkedVenues ?? 0}
           />
         </ProfileSection>
         <ProfileSection title="Payment Information">
           <ProfileItem
             icon={CreditCard}
             label="Payment Method"
-            value={profileData.payment.defaultPaymentMethod}
+            value={profileData.payment?.defaultPaymentMethod}
           />
           <ProfileItem
             icon={MapPin}
             label="Billing Address"
-            value={profileData.payment.billingAddress}
+            value={profileData.payment?.billingAddress}
           />
         </ProfileSection>
       </div>
@@ -817,28 +1040,52 @@ export default function UserProfilePage() {
         <header className="flex items-center justify-between mb-8 pb-4 border-b border-purple-400/30">
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-purple-400 shadow-md flex items-center justify-center bg-gray-700">
-              {getImageSource(profileData, profileImagePreview) ? (
-                <img
-                  src={getImageSource(profileData, profileImagePreview)}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.onerror = null; // Prevent infinite loop
-                    target.src = "/images/UserAvatars/Male.png"; // Set a valid fallback image
-                    console.log("Error loading profile image");
-                  }}
-                />
-              ) : (
-                <User className="w-10 h-10 text-gray-400" />
-              )}
+              <img
+                src={getImageSource(profileData, profileImagePreview)}
+                alt={profileData.name || "Profile"}
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  const currentSrc = target.src;
+                  
+                  if (currentSrc.includes('/images/UserAvatars/')) {
+                    return; // Already using fallback
+                  }
+
+                  // If using Appwrite URL that failed, try using the preview URL
+                  if (currentSrc.includes('cloud.appwrite.io')) {
+                    const fileId = currentSrc.split('/files/')[1]?.split('/')[0];
+                    if (fileId) {
+                      try {
+                        target.src = appwriteStorage.getFilePreview(fileId);
+                        return;
+                      } catch (error) {
+                        console.error('Error getting preview URL:', error);
+                      }
+                    }
+                  }
+
+                  // Ultimate fallback
+                  target.onerror = null;
+                  const fallback = `${DEFAULT_AVATAR_PATH}/Male.png`;
+                  target.src = fallback;
+                  
+                  console.log('Using fallback image:', {
+                    originalSrc: currentSrc,
+                    fallback,
+                    profileData
+                  });
+                }}
+              />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-wide">
                 {profileData.name || "Complete Your Profile"}
               </h1>
               <p className="text-white/70 text-sm sm:text-base">
-                {profileData.accountManagement.role || "Unspecified Role"}
+                {profileData.accountManagement?.role || "Unspecified Role"}
               </p>
             </div>
           </div>
@@ -867,29 +1114,26 @@ export default function UserProfilePage() {
   );
 }
 
-// Helper: Convert ArrayBuffer or Uint8Array to base64 string (browser-safe)
-function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
-  let binary = '';
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
-}
-// Returns the avatar image URL or a fallback if not available
+// Get the image source with proper fallback handling
+const DEFAULT_AVATAR_PATH = "/images/UserAvatars";
 const getImageSource = (
   profileData: ProfileData,
   profileImagePreview: string | null
 ): string => {
+  console.log('Getting image source:', { profileData, profileImagePreview });
+  
+  // First priority: preview of newly uploaded image
   if (profileImagePreview) {
     return profileImagePreview;
   }
-  if (profileData.avatar?.data) {
-    return `data:${profileData.avatar.contentType};base64,${arrayBufferToBase64(
-      profileData.avatar.data
-    )}`;
+  
+  // Second priority: existing avatar URL from profile data
+  if (profileData?.avatar?.url && typeof profileData.avatar.url === 'string') {
+    return profileData.avatar.url;
   }
-  // fallback image
-  return "/images/UserAvatars/Male.png";
+  
+  // Fallback: default avatar based on gender
+  const gender = profileData?.personalDetails?.gender;
+  const defaultImage = gender === 'female' ? 'Female.png' : 'Male.png';
+  return `${DEFAULT_AVATAR_PATH}/${defaultImage}`;
 };

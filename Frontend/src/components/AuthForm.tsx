@@ -30,15 +30,42 @@ const AuthForm: React.FC = () => {
     setError('');
 
     try {
+      let userCredential;
       if (isLogin) {
-        await signIn(data.email, data.password);
+        userCredential = await signIn(data.email, data.password);
       } else {
         if (data.password !== data.confirmPassword) {
           setError('Passwords do not match');
           setLoading(false);
           return;
         }
-        await signUp(data.email, data.password, data.firstName!, data.lastName!);
+        userCredential = await signUp(data.email, data.password, data.firstName!, data.lastName!);
+      }
+
+      // After successful Firebase login/signup, check MongoDB
+      const user = userCredential?.user || userCredential; // adapt to your useAuth return
+      if (user?.uid && user?.email) {
+        try {
+          const checkRes = await fetch(`/api/DB_Routes/auth-user/${user.uid}`, {
+            headers: { Authorization: `Bearer ${await user.getIdToken()}` }
+          });
+          const checkJson = await checkRes.json();
+          if (!checkJson.success) {
+            // Not in MongoDB, create user
+            await fetch('/api/DB_Routes/createuser', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                uid: user.uid,
+                email: user.email,
+                firstName: user.displayName?.split(' ')[0] || data.firstName || '',
+                lastName: user.displayName?.split(' ')[1] || data.lastName || ''
+              })
+            });
+          }
+        } catch (err) {
+          // Optionally handle error
+        }
       }
       reset();
     } catch (error: any) {

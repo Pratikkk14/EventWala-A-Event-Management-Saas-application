@@ -4,7 +4,7 @@ const Service = require("./services");
 
 const vendorSchema = new mongoose.Schema({
 
-  uid: { type: String, required: true, unique: true },
+  uid: { type: String, ref: "User", required: true },
 
   email: { type: String, required: true, unique: true },
 
@@ -18,7 +18,11 @@ const vendorSchema = new mongoose.Schema({
 
   website: String,
 
-  logoUrl: { type: String }, // Accepts URL from cloud bucket
+  logo: {
+  fileId: String,
+  url: String,
+  fileName: String
+},
 
   venues: [{ type: mongoose.Schema.Types.ObjectId, ref: "Venue" }],
 

@@ -25,9 +25,9 @@ const createVendor = async (req, res) => {
   try {
     const vendor = new Vendor(req.body);
     await vendor.save();
-    res.status(201).json(vendor);
+    res.status(201).json({ success: true, vendor });
   } catch (err) {
-    res.status(400).json({ error: `createVendor: ${err.message}` });
+    res.status(400).json({ success: false, message: `createVendor: ${err.message}` });
   }
 };
 

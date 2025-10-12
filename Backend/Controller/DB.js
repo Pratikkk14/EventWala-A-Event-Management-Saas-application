@@ -5,7 +5,19 @@ const path = require("path");
 
 const createUser = async (req, res) => {
   try {
-    const { uid, email, firstName, lastName } = req.body;
+    const { uid, email } = req.body;
+    let { firstName, lastName } = req.body;
+    console.log("Req body:", req.body);
+    // If firstName is missing or empty, use email prefix
+    if (!firstName || firstName.trim() === "") {
+      firstName = email ? email.split("@")[0] : "User";
+    }
+    // If lastName is missing, set to empty string
+    if (!lastName) {
+      lastName = "";
+    }
+
+    console.log("First Name:", firstName, "Last Name:", lastName);
 
     // Check if user already exists
     const existingUser = await User.findOne({ uid });
@@ -64,6 +76,7 @@ const updateUser = async (req, res) => {
         "bookmarks",
         "guests",
         "defaultPaymentMethod",
+        "avatar",
       ];
       allowedFields.forEach((field) => {
         if (parsed[field] !== undefined) {
@@ -72,14 +85,14 @@ const updateUser = async (req, res) => {
       });
     }
 
-    // Add avatar data if file was uploaded
-    if (req.file) {
-      updateData.avatar = {
-        data: req.file.buffer,
-        contentType: req.file.mimetype,
-      };
-      console.log("Avatar buffer length:", req.file?.buffer?.length);
-    }
+    // // Add avatar data if file was uploaded
+    // if (req.file) {
+    //   updateData.avatar = {
+    //     data: req.file.buffer,
+    //     contentType: req.file.mimetype,
+    //   };
+    //   console.log("Avatar buffer length:", req.file?.buffer?.length);
+    // }
 
     // Prevent updating UID or other sensitive fields
     delete updateData.uid;
@@ -100,16 +113,18 @@ const updateUser = async (req, res) => {
     res.status(200).json({
       success: true,
       user: {
-        ...user.toObject(),
-        avatar:
-          user.avatar && user.avatar.data
-            ? {
-                contentType: user.avatar.contentType,
-                url: `data:${
-                  user.avatar.contentType
-                };base64,${user.avatar.data.toString("base64")}`,
-              }
-            : null,
+      ...user.toObject(),
+      avatar: user.avatar
+        ? {
+          url: user.avatar.url || "",
+          fileName: user.avatar.fileName || "",
+          fileId: user.avatar.fileId || "",
+        }
+        : {
+          url: "",
+          fileName: "",
+          fileId: "",
+        },
       },
     });
   } catch (error) {
@@ -121,21 +136,7 @@ const updateUser = async (req, res) => {
   }
 };
 
-const upload = multer({
-  limits: {
-    fieldSize: 5 * 1024 * 1024, // 5MB for text fields
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed"));
-    }
-  },
-});
-
 module.exports = {
   createUser,
   updateUser,
-  upload,
 };

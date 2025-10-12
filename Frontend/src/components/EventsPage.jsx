@@ -88,50 +88,15 @@ const EventsPage = () => {
     "Major Events / Sponsored Events Promo 3",
   ];
 
-  // const allEvents = [
-  //   {
-  //     id: 1,
-  //     title: "Event A",
-  //     location: "City A",
-  //     image: "https://placehold.co/400x250/312e81/ffffff?text=Event+A",
-  //   },
-  //   {
-  //     id: 2,
-  //     title: "Event B",
-  //     location: "City B",
-  //     image: "https://placehold.co/400x250/4f46e5/ffffff?text=Event+B",
-  //   },
-  //   {
-  //     id: 3,
-  //     title: "Event C",
-  //     location: "City C",
-  //     image: "https://placehold.co/400x250/6d28d9/ffffff?text=Event+C",
-  //   },
-  //   {
-  //     id: 4,
-  //     title: "Event D",
-  //     location: "City D",
-  //     image: "https://placehold.co/400x250/7c3aed/ffffff?text=Event+D",
-  //   },
-  //   {
-  //     id: 5,
-  //     title: "Event E",
-  //     location: "City E",
-  //     image: "https://placehold.co/400x250/8b5cf6/ffffff?text=Event+E",
-  //   },
-  //   {
-  //     id: 6,
-  //     title: "Event F",
-  //     location: "City F",
-  //     image: "https://placehold.co/400x250/a78bfa/ffffff?text=Event+F",
-  //   },
-  // ];
-
-  const filteredEvents = allEvents.filter(
-    (event) =>
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter venues by name or location (city, address, pincode)
+  const filteredEvents = event.filter((venue) => {
+  const nameMatch = venue.name?.toLowerCase().includes(searchQuery.toLowerCase());
+  const cityMatch = venue.address?.city?.toLowerCase().includes(searchQuery.toLowerCase());
+  const addressLine1Match = venue.address?.addressLine1?.toLowerCase().includes(searchQuery.toLowerCase());
+  const addressLine2Match = venue.address?.addressLine2?.toLowerCase().includes(searchQuery.toLowerCase());
+  const pincodeMatch = venue.address?.pincode?.toLowerCase().includes(searchQuery.toLowerCase());
+  return nameMatch || cityMatch || addressLine1Match || addressLine2Match || pincodeMatch;
+});
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -260,7 +225,7 @@ const EventsPage = () => {
             Listed Events Grid
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {event.map((venue) => {
+            {filteredEvents.map((venue) => {
               // Filter out empty values and join with comma
               const addressParts = [
                 venue.address?.addressLine1,

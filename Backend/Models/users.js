@@ -4,7 +4,7 @@ const Event = require("./events");
 
 const guestSchema = new mongoose.Schema({
   name: String,
-  email: { type: String, unique: true },
+  email: String,
   phone: String,
   invitedAt: { type: Date, default: Date.now },
   // Add more fields as needed
@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema(
     },
     lastName: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
     phone: {
@@ -52,10 +52,9 @@ const userSchema = new mongoose.Schema(
       enum: ["male", "female", "other", "prefer-not-to-say"],
     },
     avatar: {
-      data: {
-        type: Buffer, // Store image binary data
-      },
-      contentType: String, // Store image MIME type (e.g., 'image/jpeg')
+      fileId: String,
+      url: String,
+      fileName: String,
     },
 
     // Address

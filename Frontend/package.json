@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@types/three": "^0.179.0",
+    "appwrite": "^21.1.0",
     "chart.js": "^4.5.0",
     "dom": "^0.0.3",
     "dotenv": "^17.2.2",
