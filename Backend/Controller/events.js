@@ -1,4 +1,5 @@
 const Event = require("../Models/events");
+const User = require("../Models/users");
 
 const allowedEventTypes = [
   "Baby Shower",
@@ -13,22 +14,36 @@ const allowedEventTypes = [
   "Workshop",
 ];
 
-// Get all events by type
-const getAllEventByType = async (req, res) => {
+// Get all events of a user irrespective of status
+const getAllEventsByUser = async (req, res) => {
   try {
-    const { EventType } = req.params;
-    if (!allowedEventTypes.includes(EventType)) {
+    const userId = req.params.uid; // This will now be the MongoDB ObjectId
+    if (!userId) {
       return res
         .status(400)
-        .json({ success: false, message: "Invalid event type" });
+        .json({ success: false, message: "User ID is required" });
     }
-    const events = await Event.find({ type: EventType });
+
+    // Directly query events using the MongoDB ObjectId
+    const events = await Event.find({ host: userId })
+      .populate({
+        path: 'venue',
+        select: '_id name address capacity location'
+      })
+      .populate({
+        path: 'vendor',
+        select: '_id uid name businessName contactPerson email phoneNumber price'
+      })
+      .populate({
+        path: 'host',
+        select: '_id uid firstName lastName'
+      });
     res.json({ success: true, events });
   } catch (error) {
-    console.error(`[getAllEventByType] Error:`, error);
+    console.error(`[getAllEventsByUser] Error:`, error);
     res.status(500).json({
       success: false,
-      message: "Error in getAllEventByType: " + error.message,
+      message: "Error in getAllEventsByUser: " + error.message,
     });
   }
 };
@@ -137,45 +152,11 @@ const bookEvent = async (req, res) => {
   }
 };
 
-// Get events near the user's location within a 5 km radius using MongoDB geospatial queries
-const getEventsNearMe = async (req, res) => {
-  try {
-    const { latitude, longitude } = req.body;
 
-    if (
-      typeof latitude !== "number" ||
-      typeof longitude !== "number" ||
-      isNaN(latitude) ||
-      isNaN(longitude)
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Valid latitude and longitude are required" });
-    }
-
-    // Assumes 'location' field is GeoJSON Point: { type: "Point", coordinates: [longitude, latitude] }
-    const events = await Event.find({
-      location: {
-        $geoWithin: {
-          $centerSphere: [[longitude, latitude], 5 / 6378.1], // 5 km radius
-        },
-      },
-    });
-
-    res.json({ success: true, events });
-  } catch (error) {
-    console.error(`[getEventsNearMe] Error:`, error);
-    res.status(500).json({
-      success: false,
-      message: "Error in getEventsNearMe: " + error.message,
-    });
-  }
-};
 
 module.exports = {
-  getAllEventByType,
+  getAllEventsByUser,
   getEvent,
   getAllEvents,
   bookEvent,
-  getEventsNearMe,
 };

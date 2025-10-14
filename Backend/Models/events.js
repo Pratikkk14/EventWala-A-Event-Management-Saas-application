@@ -29,7 +29,11 @@ const eventSchema = new mongoose.Schema({
   host: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
   services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }],
-  guests: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  eventStatus: {
+    type: String,
+    enum: ["Pending", "Confirmed", "Completed", "Cancelled"],
+    required: true,
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
@@ -40,6 +44,4 @@ eventSchema.pre("save", function (next) {
 });
 
 
-module.exports = {
-  Event: mongoose.model("Event", eventSchema)
-};
+module.exports = mongoose.model("Event", eventSchema);
