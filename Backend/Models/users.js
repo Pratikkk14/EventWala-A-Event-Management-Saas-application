@@ -47,6 +47,7 @@ const userSchema = new mongoose.Schema(
 
     // Additional Details
     dateOfBirth: Date,
+    
     gender: {
       type: String,
       enum: ["male", "female", "other", "prefer-not-to-say"],

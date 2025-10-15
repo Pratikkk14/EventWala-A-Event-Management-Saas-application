@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from "../hooks/useAuth";
 import { toast } from 'react-hot-toast';
+import { uploadUserProfileImage } from '../services/storage';
 
 interface UserProfile {
   firstName: string;
@@ -125,7 +126,7 @@ const LoadingSpinner = () => (
   </svg>
 );
 
-const DEFAULT_AVATAR = '/images/UserAvatars/default.png';
+const DEFAULT_AVATAR = '/images/UserAvatars/Male.png';
 
 export default function UserProfilePage() {
   const { user } = useAuth();
@@ -163,9 +164,17 @@ export default function UserProfilePage() {
   });
 
   const [formData, setFormData] = useState<UserProfile>(getInitialFormData());
-  const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Clean up object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (profileImagePreview && profileImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImagePreview);
+      }
+    };
+  }, [profileImagePreview]);
 
   // Debug: Log form data changes
   useEffect(() => {
@@ -204,7 +213,9 @@ export default function UserProfilePage() {
         }
         
         const data = await response.json();
-        console.log('Profile data:', data); // Debug log
+        console.log('Profile data from server:', data); // Debug log
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (data.success && data.data) {
           const userData = data.data;
@@ -290,16 +301,57 @@ export default function UserProfilePage() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB');
+    // Check file size (5MB limit)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('File size must be less than 5MB');
       return;
     }
 
-    setProfileImage(file);
-    setProfileImagePreview(URL.createObjectURL(file));
-  };
+    try {
+      setIsLoading(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+      // Create a preview immediately for better UX
+      const objectUrl = URL.createObjectURL(file);
+      // Clean up previous preview URL if it exists
+      if (profileImagePreview && profileImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImagePreview);
+      }
+      setProfileImagePreview(objectUrl);
+      
+      // Upload to Appwrite
+      if (!user?.uid) {
+        throw new Error('User ID not found');
+      }
+
+      const result = await uploadUserProfileImage(file, user.uid);
+      console.log('Upload result:', result); // Debug log
+
+      // Update form data with the new avatar information
+      const updatedFormData = {
+        ...formData,
+        avatar: {
+          fileId: result.fileId,
+          url: result.url,
+          fileName: result.fileName
+        }
+      };
+
+      console.log('Updating form data with:', updatedFormData); // Debug log
+      setFormData(updatedFormData);
+
+      // Set the final URL as preview
+      setProfileImagePreview(result.url);
+      toast.success('Profile image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      toast.error('Failed to upload profile image');
+      // Reset preview on error
+      setProfileImagePreview(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.uid) {
       toast.error('Please login to update profile');
@@ -308,33 +360,16 @@ export default function UserProfilePage() {
 
     setIsLoading(true);
     try {
-      let avatarData = null;
-      if (profileImage) {
-        // Upload profile image if changed
-        const formData = new FormData();
-        formData.append('file', profileImage);
-        formData.append('userId', user.uid);
-
-        const uploadResponse = await fetch('/api/upload/profile', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!uploadResponse.ok) throw new Error('Failed to upload image');
-        avatarData = await uploadResponse.json();
-      }
+      console.log('Submitting form data:', formData); // Debug log
 
       // Update user profile
-      const updateResponse = await fetch('/api/DB_Routes/updateuser/' + user.uid, {
+      const updateResponse = await fetch(`/api/DB_Routes/updateuser/${user.uid}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + (await user.getIdToken())
         },
-        body: JSON.stringify({
-          ...formData,
-          avatar: avatarData
-        })
+        body: JSON.stringify(formData) // Send the complete formData object
       });
 
       if (!updateResponse.ok) throw new Error('Failed to update profile');

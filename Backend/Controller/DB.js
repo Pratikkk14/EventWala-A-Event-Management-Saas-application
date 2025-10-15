@@ -47,91 +47,49 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { uid } = req.params;
-    let updateData = {};
+    console.log("Updating user:", uid);
+    console.log("Request body:", req.body);
 
-    // Only allow specific fields to be updated
-    if (req.body.userData) {
-
-      const parsed = JSON.parse(req.body.userData);
-      console.log("Parsed userData:", parsed);
-
-      // Whitelist allowed fields
-      const allowedFields = [
-        "email",
-        "firstName",
-        "lastName",
-        "phone",
-        "dateOfBirth",
-        "gender",
-        "address",
-        "socialProfiles",
-        "preferences",
-        "role",
-        "isVerified",
-        "accountStatus",
-        "accountType",
-        "socialProfiles",
-        "eventsHosted",
-        "eventsAttended",
-        "bookmarks",
-        "guests",
-        "defaultPaymentMethod",
-        "avatar",
-      ];
-      allowedFields.forEach((field) => {
-        if (parsed[field] !== undefined) {
-          updateData[field] = parsed[field];
-        }
-      });
-    }
-
-    // // Add avatar data if file was uploaded
-    // if (req.file) {
-    //   updateData.avatar = {
-    //     data: req.file.buffer,
-    //     contentType: req.file.mimetype,
-    //   };
-    //   console.log("Avatar buffer length:", req.file?.buffer?.length);
-    // }
-
-    // Prevent updating UID or other sensitive fields
+    const updateData = { ...req.body };
+    
+    // Prevent updating sensitive fields
     delete updateData.uid;
     delete updateData._id;
+    delete updateData.role;
+    delete updateData.isVerified;
+    delete updateData.accountStatus;
+    delete updateData.accountType;
 
-    const user = await User.findOneAndUpdate({ uid }, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    console.log("Filtered update data:", updateData);
 
-    if (!user) {
+    // Find and update the user
+    const updatedUser = await User.findOneAndUpdate(
+      { uid },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
 
+    console.log("Updated user:", updatedUser);
+
+    // Send back the updated user data
     res.status(200).json({
       success: true,
-      user: {
-      ...user.toObject(),
-      avatar: user.avatar
-        ? {
-          url: user.avatar.url || "",
-          fileName: user.avatar.fileName || "",
-          fileId: user.avatar.fileId || "",
-        }
-        : {
-          url: "",
-          fileName: "",
-          fileId: "",
-        },
-      },
+      user: updatedUser.toObject()
     });
+
   } catch (error) {
     console.error("User update error:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error while updating user profile",
+      error: error.message
     });
   }
 };
