@@ -32,6 +32,11 @@ app.use("/api/explore-events", explore_events);
 app.use("/api/explore-venues", explore_venues);
 app.use("/api/vendors", Vendor_Router);
 
+// Health check route for root
+app.get('/', (req, res) => {
+    res.send('EventWala Backend is running!');
+});
+
 
 
 // Error handling middleware
