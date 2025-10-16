@@ -2,13 +2,13 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://your-backend-vercel-url.vercel.app/api/:path*"
+      "destination": "https://event-wala-a-event-management-saas.vercel.app/api/:path*"
     }
   ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
   "env": {
-    "VITE_BACKEND_URL": "https://your-backend-vercel-url.vercel.app"
+    "VITE_BACKEND_URL": "https://event-wala-a-event-management-saas.vercel.app"
   }
 }
