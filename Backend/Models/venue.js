@@ -24,11 +24,11 @@ const venueSchema = new mongoose.Schema({
     country: String,
   },
   photo: [{
-  fileId: String,
-  url: String,
-  fileName: String,
-  uploadedAt: { type: Date, default: Date.now }
-}],
+    fileId: String,
+    url: String,
+    fileName: String,
+    uploadedAt: { type: Date, default: Date.now }
+  }],
   vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' }, // Master vendor
   vendorReview: [
     {

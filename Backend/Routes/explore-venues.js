@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const {
+    getAllVendorVenues,
     getAllVenues,
     getVenue,
     createVenue,
@@ -13,6 +14,8 @@ const authenticate = require("../Middleware/authentication");
 
 // Get all venues, optionally filter by eventType
 router.get("/", getAllVenues);
+
+router.get("/venues-by-vendor/:vendorId", getAllVendorVenues);
 
 // Get all venues by a types of filter like pincode, latitude, longitude
 router.get("/all-events", getAllVenuesByFilter);

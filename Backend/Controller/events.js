@@ -152,11 +152,162 @@ const bookEvent = async (req, res) => {
   }
 };
 
+// Create a new event
+const createEvent = async (req, res) => {
+  try {
+    const { 
+      name, 
+      type, 
+      date, 
+      description, 
+      host, 
+      venue, 
+      venueName,
+      vendor, 
+      budget, 
+      guests, 
+      eventStatus 
+    } = req.body;
 
+    if (!name || !type || !date || !eventStatus) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Name, type, date, and eventStatus are required" 
+      });
+    }
+
+    if (!allowedEventTypes.includes(type)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid event type" 
+      });
+    }
+
+    // Get user from authentication
+    let hostUser;
+    
+    // Get authenticated user from request
+    if (req.user && req.user.uid) {
+      hostUser = await User.findOne({ uid: req.user.uid });
+      
+      if (!hostUser) {
+        return res.status(404).json({
+          success: false,
+          message: "Authenticated user not found in database"
+        });
+      }
+    } else if (req.body.userId) {
+      // If no user in request but userId provided in body, use that
+      hostUser = await User.findOne({ uid: req.body.userId });
+      
+      if (!hostUser) {
+        return res.status(404).json({
+          success: false,
+          message: "User specified in request not found in database"
+        });
+      }
+    } else {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required to create events"
+      });
+    }
+
+    // Create the new event
+    const newEvent = new Event({
+      name,
+      type,
+      date: new Date(date),
+      description,
+      host: hostUser._id, // Use the authenticated user's MongoDB ObjectId
+      venue: venue || null,
+      vendor: vendor || null,
+      eventStatus: eventStatus || "Pending",
+      guests: guests || 0
+    });
+
+    // Save the new event
+    const savedEvent = await newEvent.save();
+    
+    // Add the event to the user's eventsHosted array
+    hostUser.eventsHosted.push(savedEvent._id);
+    await hostUser.save();
+    
+    console.log(`Event ${savedEvent._id} created and added to user ${hostUser._id}`);
+    
+    res.status(201).json({ 
+      success: true, 
+      message: "Event created successfully", 
+      eventId: savedEvent._id 
+    });
+  } catch (error) {
+    console.error(`[createEvent] Error:`, error);
+    res.status(500).json({
+      success: false,
+      message: "Error in createEvent: " + error.message,
+    });
+  }
+};
+
+// Update an event's status
+const updateEventStatus = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { eventStatus } = req.body;
+    
+    if (!eventId) {
+      return res.status(400).json({
+        success: false,
+        message: "Event ID is required"
+      });
+    }
+    
+    if (!eventStatus || !['Pending', 'Confirmed', 'Completed', 'Cancelled'].includes(eventStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid event status is required"
+      });
+    }
+    
+    // Find the event
+    const event = await Event.findById(eventId);
+    
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found"
+      });
+    }
+    
+    // Update the status
+    event.eventStatus = eventStatus;
+    await event.save();
+    
+    res.json({
+      success: true,
+      message: `Event status updated to ${eventStatus}`,
+      event: {
+        _id: event._id,
+        name: event.name,
+        type: event.type,
+        eventStatus: event.eventStatus
+      }
+    });
+    
+  } catch (error) {
+    console.error(`[updateEventStatus] Error:`, error);
+    res.status(500).json({
+      success: false,
+      message: "Error in updateEventStatus: " + error.message
+    });
+  }
+};
 
 module.exports = {
   getAllEventsByUser,
   getEvent,
   getAllEvents,
   bookEvent,
+  createEvent,
+  updateEventStatus
 };

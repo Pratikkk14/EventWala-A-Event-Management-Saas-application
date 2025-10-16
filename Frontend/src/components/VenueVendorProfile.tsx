@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { EventTypeContext } from "../context/EventTypeContext";
+import { useInquiry } from "../context/InquiryContext";
 // import ImageSlider from "./ImageSlider";
 import { useParams } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 interface Offer {
   _id?: string;
@@ -47,10 +49,19 @@ interface VendorReview {
   date?: string; // Added for backend compatibility
 }
 
+interface VenuePhoto {
+  fileId?: string;
+  url?: string;
+  fileName?: string;
+  uploadedAt?: string;
+  _id?: string;
+}
+
 interface Venue {
   name: string;
   address?: Address;
-  photos?: Array<{ fileId?: string; url?: string }>;
+  photo?: VenuePhoto[];
+  photos?: VenuePhoto[]; // For backward compatibility
   vendor?: Vendor;
   vendorReview?: VendorReview[];
   venuePrices?: VenuePrice[];
@@ -88,6 +99,7 @@ const VenueVendorProfile = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const { eventType } = React.useContext(EventTypeContext);
   const { venueId } = useParams<{ venueId: string }>();
@@ -99,10 +111,44 @@ const VenueVendorProfile = () => {
       setError(null);
       try {
         // Fetch venue by ID, populate vendor
+        console.log("Fetching venue data for ID:", venueId);
         const res = await fetch(`/api/explore-venues/${venueId}`);
-        if (!res.ok) throw new Error("Failed to fetch venue");
+        if (!res.ok) {
+          console.error("API response not OK:", res.status, res.statusText);
+          throw new Error(`Failed to fetch venue: ${res.status} ${res.statusText}`);
+        }
+        
         const venueData = await res.json();
-        setVenue(venueData.venue);
+        
+        // Enhanced logging for debugging
+        console.log("API Response:", venueData);
+        console.log("Venue data:", venueData.venue);
+        console.log("Photos field (venue.photo):", venueData.venue.photo);
+        console.log("Photos field (venue.photos):", venueData.venue.photos);
+        
+        // Check if we have image data in the expected format
+        const photoArray = venueData.venue.photo || venueData.venue.photos;
+        if (!photoArray || !Array.isArray(photoArray)) {
+          console.warn("No photo array found or it's not an array:", photoArray);
+          
+          // If we have photo data but it's not in the right format, try to normalize it
+          if (venueData.venue.photo && !Array.isArray(venueData.venue.photo)) {
+            console.log("Attempting to normalize non-array photo field");
+            venueData.venue.photo = [venueData.venue.photo]; 
+          }
+        } else {
+          console.log("Photo array length:", photoArray.length);
+          console.log("First photo:", photoArray[0]);
+        }
+        
+        // Normalize data structure before setting to state
+        const normalizedVenue = {
+          ...venueData.venue,
+          // Ensure we have a consistent photos field
+          photo: venueData.venue.photo || []
+        };
+        
+        setVenue(normalizedVenue);
         setVendor(venueData.venue.vendor);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
@@ -168,22 +214,137 @@ const VenueVendorProfile = () => {
 
   interface HandleSubmitEvent extends React.FormEvent<HTMLFormElement> {}
 
-  const handleSubmit = (e: HandleSubmitEvent) => {
+  const { addInquiry } = useInquiry();
+  
+  const handleSubmit = async (e: HandleSubmitEvent) => {
     e.preventDefault();
-    console.log("Booking request submitted:", formData);
-    setMessage(
-      "Your booking request has been submitted! We will get in touch with you shortly."
-    );
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      eventType: "",
-      date: "",
-      guests: "",
-      details: "",
-    });
-    setCurrentStep(1);
+    console.log("VenueVendorProfile: Booking request submitted:", formData);
+    
+    // Form validation
+    if (!formData.name || !formData.email || !formData.phone || !formData.eventType || !formData.date) {
+      console.log("VenueVendorProfile: Form validation failed - missing required fields");
+      setMessage("Please fill all required fields");
+      return;
+    }
+    
+    try {
+      // Create an inquiry from the form data
+      if (venue) {
+        // Debug inquiry context
+        console.log("VenueVendorProfile: addInquiry function available:", !!addInquiry);
+        
+        // Create the inquiry object to be submitted
+        const inquiryData = {
+          client: {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone
+          },
+          event: {
+            type: formData.eventType || "Event",
+            name: `${formData.name}'s ${formData.eventType || "Event"}`,
+            date: formData.date,
+            guests: parseInt(formData.guests, 10) || 0,
+            details: formData.details
+          },
+          budget: (() => {
+            const price = venue.venuePrices?.find(p => p.eventType === formData.eventType)?.price;
+            if (price) {
+              return `$${price}`;
+            } else {
+              console.log("No price found for event type:", formData.eventType);
+              return 'Contact for pricing';
+            }
+          })(),
+          venueId: venueId,
+          venueName: venue.name,
+          eventStatus: 'Pending' as const
+        };
+        
+        console.log("VenueVendorProfile: About to add inquiry:", inquiryData);
+        
+        // Call the context function to add the inquiry
+        addInquiry(inquiryData);
+        console.log("VenueVendorProfile: Inquiry added successfully");
+        
+        // Create a corresponding event with "Pending" status in the backend
+        try {
+          // Prepare event data for API
+          const eventData = {
+            user: user?.uid,
+            name: inquiryData.event.name,
+            type: inquiryData.event.type,
+            date: inquiryData.event.date,
+            description: inquiryData.event.details || '',
+            host: {
+              name: inquiryData.client.name,
+              email: inquiryData.client.email,
+              phone: inquiryData.client.phone
+            },
+            venue: venueId,
+            venueName: venue.name,
+            budget: inquiryData.budget,
+            guests: inquiryData.event.guests,
+            eventStatus: "Pending"
+          };
+          
+          console.log("VenueVendorProfile: Creating event in backend:", eventData);
+          
+          // Send to backend API
+          const response = await fetch('/api/explore-events', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + (await user.getIdToken()),
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(eventData),
+          });
+          
+          const result = await response.json();
+          console.log("Backend response:", result);
+          
+          if (result.success) {
+            console.log(`Event created successfully with ID: ${result._id}`);
+            // Store the backend event ID in the inquiry data
+            inquiryData.backendEventId = result._id;
+            
+            // We already added the inquiry above, but we'll add the eventId to it in context
+            // by updating the inquiries array
+            addInquiry({...inquiryData});
+          } else {
+            console.error("Failed to create event in backend:", result.message);
+          }
+        } catch (error) {
+          console.error("Failed to create event in backend:", error);
+          // Continue anyway - the inquiry is saved locally
+        }
+        
+        // Check localStorage to confirm it was saved
+        setTimeout(() => {
+          const storedInquiries = localStorage.getItem('inquiries');
+          console.log("VenueVendorProfile: Verification - LocalStorage inquiries:", storedInquiries);
+        }, 100);
+        
+        setMessage(
+          "Your booking request has been submitted! We will get in touch with you shortly."
+        );
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          eventType: "",
+          date: "",
+          guests: "",
+          details: "",
+        });
+        setCurrentStep(1);
+      } else {
+        console.error("VenueVendorProfile: Venue is null, cannot submit form");
+      }
+    } catch (error) {
+      console.error("VenueVendorProfile: Error submitting booking request:", error);
+      setMessage("Error submitting your request. Please try again.");
+    }
   };
 
   const isStep1Valid = formData.name.trim() !== "" && formData.email.trim() !== "" && formData.phone.trim() !== "";
@@ -341,9 +502,19 @@ const VenueVendorProfile = () => {
 
   // Helper: get price for current eventType
   const getPriceForEventType = () => {
-    if (!venue?.venuePrices || !eventType) return null;
-    const priceObj = venue.venuePrices.find((p) => p.eventType === eventType);
-    return priceObj ? priceObj.price : null;
+    if (!venue?.venuePrices) return null;
+    
+    // Use selected event type or default to first available event type
+    const selectedEventType = eventType || (venue.eventTypes && venue.eventTypes.length > 0 ? venue.eventTypes[0] : null);
+    if (!selectedEventType) return null;
+    
+    const priceObj = venue.venuePrices.find((p) => p.eventType === selectedEventType);
+    if (priceObj) {
+      return priceObj.price;
+    } else {
+      console.log(`No price found for event type: ${selectedEventType}`);
+      return venue.venuePrices.length > 0 ? venue.venuePrices[0].price : null;
+    }
   };
 
   // Helper: get location string (see EventsPage.jsx for format)
@@ -356,10 +527,45 @@ const VenueVendorProfile = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#151421] text-gray-200">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#151421] text-gray-200">
+        <div className="text-center">
+          <div className="mb-4 text-2xl">Loading venue data...</div>
+          <div className="w-12 h-12 rounded-full border-4 border-t-transparent border-[#7f34c5] animate-spin mx-auto"></div>
+        </div>
+      </div>
+    );
   }
+  
   if (error) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#151421] text-red-400">{error}</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#151421] text-red-400">
+        <div className="text-center max-w-lg px-4">
+          <h2 className="text-2xl font-bold mb-4">Error Loading Venue</h2>
+          <p className="mb-4">{error}</p>
+          <p className="text-gray-400 text-sm">Please check the venue ID or try again later.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-6 px-6 py-2 bg-[#7f34c5] text-white rounded-md hover:bg-[#6a2aab]"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!venue) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#151421] text-yellow-400">
+        <div className="text-center max-w-lg px-4">
+          <h2 className="text-2xl font-bold mb-4">Venue Not Found</h2>
+          <p className="text-gray-400 text-sm">
+            The requested venue could not be found or has been removed.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -377,19 +583,59 @@ const VenueVendorProfile = () => {
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         {/* Image Gallery */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 rounded-lg overflow-hidden shadow-lg">
-          {venue?.photos?.map((img, idx) => (
-            <div key={idx} className="w-full h-64 overflow-hidden">
-              <img src={img.url || img.fileId || ""} alt={`Venue ${idx + 1}`} className="w-full h-full object-cover rounded-lg" />
-            </div>
-          ))}
+          {(() => {
+            // Debug the image data structure
+            const photos = venue?.photos || venue?.photo || [];
+            console.log("Venue image data:", { venue, photos });
+            
+            if (!photos || photos.length === 0) {
+              return (
+                <div className="w-full h-64 overflow-hidden col-span-3 flex items-center justify-center bg-gray-800 rounded-lg">
+                  <p className="text-gray-400">No images available for this venue</p>
+                </div>
+              );
+            }
+            
+            return photos.map((img, idx) => {
+              console.log(`Image ${idx}:`, img);
+              const imgUrl = img?.url || img?.fileId || "";
+              
+              return (
+                <div key={idx} className="w-full h-64 overflow-hidden relative group">
+                  <div className="absolute inset-0 bg-gray-900 bg-opacity-30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+                    <div className="text-white text-sm bg-black bg-opacity-50 py-1 px-3 rounded-full">
+                      {idx + 1} of {photos.length}
+                    </div>
+                  </div>
+                  
+                  {!imgUrl ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
+                      <p className="text-gray-400">No image URL</p>
+                    </div>
+                  ) : (
+                    <img 
+                      src={imgUrl} 
+                      alt={`${venue?.name || 'Venue'} - Image ${idx + 1}`} 
+                      className="w-full h-full object-cover rounded-lg transition-transform duration-500 group-hover:scale-105" 
+                      onLoad={() => console.log(`Image ${idx} loaded successfully`)}
+                      onError={(e) => {
+                        console.error("Error loading image:", { img, idx, imgUrl });
+                        e.currentTarget.src = "https://via.placeholder.com/400x300?text=Image+Unavailable";
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            });
+          })()}
         </div>
 
         {/* Venue and Vendor Details Section */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Venue Details Card */}
           <div className="card p-6 md:col-span-2">
-            <h1 className="text-3xl font-poppins font-bold text-gray-50">{venue?.name}</h1>
-            <p className="text-lg text-gray-400 mt-2">{getLocationString()}</p>
+            <h1 className="text-3xl font-poppins font-bold text-gray-50">{venue?.name || "Unnamed Venue"}</h1>
+            <p className="text-lg text-gray-400 mt-2">{getLocationString() || "Location not specified"}</p>
             <p className="text-xl font-semibold text-[#7f34c5] mt-4">
               {getPriceForEventType() ? `₹${getPriceForEventType()}` : venue?.venuePrices?.length ? `₹${venue.venuePrices[0].price}` : "N/A"}
             </p>
@@ -541,6 +787,52 @@ const VenueVendorProfile = () => {
           </div>
         </div>
       )}
+      
+      {/* Debug section - add test inquiry */}
+      <div className="mt-8 p-4 bg-red-800 bg-opacity-20 rounded-lg max-w-sm mx-auto">
+        <h3 className="text-white font-bold mb-2">Debug Tools</h3>
+        <button
+          onClick={() => {
+            // Create a test inquiry
+            if (venue) {
+              const testInquiry = {
+                client: {
+                  name: "Test User",
+                  email: "test@example.com",
+                  phone: "555-1234"
+                },
+                event: {
+                  type: "Test Event",
+                  name: "Test Event Name",
+                  date: new Date().toISOString().split('T')[0],
+                  guests: 50,
+                  details: "This is a test inquiry created from debug button"
+                },
+                budget: "$1000",
+                venueId: venueId,
+                venueName: venue.name,
+                eventStatus: 'Pending' as const
+              };
+              
+              console.log("TEST: Creating test inquiry:", testInquiry);
+              addInquiry(testInquiry);
+              console.log("TEST: Test inquiry created");
+              
+              // Debug localStorage
+              setTimeout(() => {
+                console.log("TEST: Verifying localStorage after test inquiry");
+                const storedInquiries = localStorage.getItem('inquiries');
+                console.log("TEST: StoredInquiries:", storedInquiries);
+              }, 100);
+              
+              setMessage("Test inquiry created! Check console for details");
+            }
+          }}
+          className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 text-sm"
+        >
+          Create Test Inquiry
+        </button>
+      </div>
     </div>
   );
 };

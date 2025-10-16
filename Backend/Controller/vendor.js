@@ -13,7 +13,7 @@ const getAllVendors = async (req, res) => {
 
 const getVendorById = async (req, res) => {
   try {
-    const vendor = await Vendor.findById(req.params.vendorId);
+    const vendor = await Vendor.findOne({ uid: req.params.uid });
     if (!vendor) return res.status(404).json({ error: "getVendorById: Vendor not found" });
     res.json(vendor);
   } catch (err) {

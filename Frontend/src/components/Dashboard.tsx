@@ -9,7 +9,6 @@ import {
   Search,
   User,
   Calendar,
-  Users,
   LogOut,
   Baby,
   Cake,
@@ -408,6 +407,7 @@ const Dashboard: React.FC = () => {
               My Bookings
               </span>
             </button>
+            {/* Event Media Hub - Commented out
             <button
               className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group"
               onClick={() => navigate("/media-hub")}
@@ -423,6 +423,7 @@ const Dashboard: React.FC = () => {
               Event Media Hub
               </span>
             </button>
+            */}
           </nav>
 
           {/* Vendor CTA */}
@@ -498,10 +499,10 @@ const Dashboard: React.FC = () => {
                     <User className="w-4 h-4 mr-2" />
                     <span>Profile</span>
                   </button>
-                <button className="flex items-center w-full px-4 py-2 text-white hover:bg-purple-600/30 transition-colors">
+                {/* <button className="flex items-center w-full px-4 py-2 text-white hover:bg-purple-600/30 transition-colors">
                   <User className="w-4 h-4 mr-2" />
                   <span>Settings</span>
-                </button>
+                </button> */}
                 <button
                   onClick={handleLogout}
                   className="flex items-center w-full px-4 py-2 text-red-400 hover:bg-red-500/20 transition-colors border-t border-purple-500/20"

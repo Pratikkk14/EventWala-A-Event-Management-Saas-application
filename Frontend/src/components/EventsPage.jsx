@@ -3,8 +3,6 @@ import {
   Search,
   ChevronRight,
   ChevronLeft,
-  SlidersHorizontal,
-  MapPin,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { EventTypeContext } from '../context/EventTypeContext';
@@ -12,9 +10,7 @@ import { EventTypeContext } from '../context/EventTypeContext';
 // The cool theme styles from your existing Dashboard.jsx
 const theme = {
   background: "bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900",
-  sidebarBg: "bg-slate-800/80",
-  sidebarBorder: "border-white/10",
-  sidebarAccent: "bg-purple-600/20",
+  // Removed sidebar related styles
   textMain: "text-white",
   textAccent: "text-purple-300",
   textSubtle: "text-purple-200",
@@ -57,25 +53,10 @@ const styleTag = (
   </style>
 );
 
-// New component for sidebar content
-const SidebarContent = ({ isFiltersOpen, theme }) => (
-  <div
-    className={`p-4 transition-opacity duration-300 ${
-      isFiltersOpen ? "opacity-100" : "opacity-0 hidden"
-    }`}
-  >
-    <h3 className={`${theme.textMain} text-sm font-semibold mb-2`}>
-      By Location
-    </h3>
-    <div className="flex items-center mb-4">
-      <MapPin className={`${theme.textAccent} w-4 h-4 mr-2`} />
-      <span className={`${theme.textSubtle}`}>Location</span>
-    </div>
-  </div>
-);
+// Sidebar content removed
 
 const EventsPage = () => {
-  const [isFiltersOpen, setIsFiltersOpen] = useState(true);
+  // Removed isFiltersOpen state since sidebar is being removed
   const [promoIndex, setPromoIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
@@ -128,38 +109,12 @@ const EventsPage = () => {
 
   return (
     <div
-      className={`min-h-screen relative overflow-hidden ${theme.background} ${theme.font} flex flex-col md:flex-row p-4`}
+      className={`min-h-screen relative overflow-hidden ${theme.background} ${theme.font} flex flex-col p-4`}
     >
       {styleTag}
 
-      {/* Filters Sidebar */}
-      <aside
-        className={`${isFiltersOpen ? "w-64" : "w-16"} ${
-          theme.sidebarBg
-        } border ${
-          theme.sidebarBorder
-        } rounded-3xl m-4 transition-all duration-300 ease-in-out flex flex-col h-[calc(100vh-2rem)]`}
-      >
-        <div
-          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-          className="flex justify-between items-center p-4 cursor-pointer"
-        >
-          <div className="flex items-center">
-            <SlidersHorizontal className={`w-6 h-6 ${theme.textMain}`} />
-            <h2
-              className={`font-bold text-lg ml-2 transition-opacity duration-300 ${
-                isFiltersOpen ? "opacity-100" : "opacity-0"
-              } ${theme.textMain}`}
-            >
-              Filters
-            </h2>
-          </div>
-        </div>
-        <SidebarContent isFiltersOpen={isFiltersOpen} theme={theme} />
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 flex flex-col overflow-x-hidden">
+      {/* Main Content - now taking full width since sidebar is removed */}
+      <main className="w-full p-4 md:p-8 flex flex-col overflow-x-hidden">
         {/* Search Bar */}
         <div className="relative mb-8">
           <Search
@@ -188,7 +143,7 @@ const EventsPage = () => {
                   (promoIndex - 1 + promoEvents.length) % promoEvents.length
                 )
               }
-              className={`p-2 rounded-full ${theme.sidebarAccent} hover:bg-white/20 transition-colors`}
+              className="p-2 rounded-full bg-purple-600/20 hover:bg-white/20 transition-colors"
             >
               <ChevronLeft className="w-6 h-6 text-white" />
             </button>
@@ -201,7 +156,7 @@ const EventsPage = () => {
               onClick={() =>
                 setPromoIndex((promoIndex + 1) % promoEvents.length)
               }
-              className={`p-2 rounded-full ${theme.sidebarAccent} hover:bg-white/20 transition-colors`}
+              className="p-2 rounded-full bg-purple-600/20 hover:bg-white/20 transition-colors"
             >
               <ChevronRight className="w-6 h-6 text-white" />
             </button>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useState } from "react";
 import { EventTypeContext } from './context/EventTypeContext.js';
 import { LocationProvider } from './context/LocationContext';
+import { InquiryProvider } from './context/InquiryContext';
 
 import AuthForm from './components/AuthForm';
 import Dashboard from './components/Dashboard';
@@ -15,20 +16,24 @@ import VenueVendorProfile from './components/VenueVendorProfile';
 import Mapcomponent from './components/MapComponent';
 // @ts-ignore
 import BecomeVendorForm from './components/VendorOnBoardingForm';
-// @ts-ignore
-import EventMediaHub from './components/MediaHub';
+// @ts-ignore - Commented out Media Hub component
+// import EventMediaHub from './components/MediaHub';
+import TempVenueVendorProfile from '../TempVenueVendorProfile.js';
 // @ts-ignore
 import MyBookingsPage from './components/MyBookingsPage';
 
 //testing pg
 import Testpage from './components/Testpage'; 
-import TempVenueVendorProfile from '../TempVenueVendorProfile.js';
+// import TempVenueVendorProfile from '../TempVenueVendorProfile.js';
+import InquiryQueue from './components/Inquiry';
 
 import { useAuth } from './hooks/useAuth';
 import { Toaster } from "react-hot-toast";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
+  // Add console log to verify App rendering with InquiryProvider
+  console.log("App: Rendering with InquiryProvider");
 
   type MongoUserType = {
     data?: { role?: string; };
@@ -40,6 +45,11 @@ function App() {
     loading: boolean;
   };
   const [eventType, setEventType] = useState("");
+  
+  // Debug mounting of App component with providers
+  React.useEffect(() => {
+    console.log("App: Component mounted with providers");
+  }, []);
 
   if (loading) {
     return (
@@ -57,18 +67,24 @@ function App() {
       <Toaster position="top-right" />
       <LocationProvider>
         <EventTypeContext.Provider value={{ eventType, setEventType }}>
-          <BrowserRouter>
-            <Routes>
+          <InquiryProvider>
+            <BrowserRouter>
+              <Routes>
               {user ? (
                 <>
-                  {/* Redirect vendor users from "/" to "/vendor-dashboard" */}
+                  {/* Allow both user and vendor dashboard access */}
                   <Route
                     path="/"
+                    element={<Dashboard />}
+                  />
+                  {/* Optional: Redirect to vendor dashboard only on first login/auth */}
+                  <Route
+                    path="/welcome"
                     element={
                       mongoUser?.data?.role === "vendor" ? (
                         <Navigate to="/vendor-dashboard" replace />
                       ) : (
-                        <Dashboard />
+                        <Navigate to="/" replace />
                       )
                     }
                   />
@@ -81,8 +97,11 @@ function App() {
                   <Route path="/all-event-map" element={<Mapcomponent />} />
                   <Route path="/test-venue-vendor-profile" element={<TempVenueVendorProfile />} />
                   <Route path="/become-vendor" element={<BecomeVendorForm />} />
+                  {/* Media Hub route commented out
                   <Route path="/media-hub" element={<EventMediaHub />} />
+                  */}
                   <Route path="/my-bookings" element={<MyBookingsPage />} />
+                  <Route path="/vendor/inquiries" element={<InquiryQueue />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </>
               ) : (
@@ -90,6 +109,7 @@ function App() {
               )}
             </Routes>
           </BrowserRouter>
+          </InquiryProvider>
         </EventTypeContext.Provider>
       </LocationProvider>
     </>
