@@ -9,12 +9,19 @@ const Vendor_Router = require('./Routes/Vendor_Router');
 const cors = require('cors');
 
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
 connectToMongo(process.env.MONGODB_URI);
 
+// CORS Configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:4000',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 //Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 
