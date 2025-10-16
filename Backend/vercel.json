@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "index.js"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "@mongodb_uri",
+    "FRONTEND_URL": "@frontend_url",
+    "APPWRITE_ENDPOINT": "@appwrite_endpoint",
+    "APPWRITE_PROJECT_ID": "@appwrite_project_id",
+    "APPWRITE_API_KEY": "@appwrite_api_key",
+    "APPWRITE_BUCKET_ID": "@appwrite_bucket_id"
+  }
+}
