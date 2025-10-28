@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { uploadVenuePhotos } from '../services/venueStorage';
+import { ApiClient } from '../utils/apiConfig';
 import { 
   PlusCircle,
   Image as ImageIcon,
@@ -14,6 +15,24 @@ import {
   Loader,
   ArrowLeft
 } from 'lucide-react';
+
+// API Response Types
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
+interface VendorResponse {
+  _id: string;
+  [key: string]: any;
+}
+
+interface VenuesResponse {
+  success: boolean;
+  message?: string;
+  venues: VenueDetails[];
+}
 
 // Types from the backend venue model
 interface VenuePrice {
@@ -166,25 +185,11 @@ export default function VenueManagement() {
         const token = await user.getIdToken();
 
         // First get the vendor object
-        const vendorResponse = await fetch(`/api/vendors/${user.uid}`, {
-          headers: {
-            'Authorization': 'Bearer ' + token
-          }
-        });
-
-        if (!vendorResponse.ok) throw new Error('Failed to fetch vendor details');
-        const vendorData = await vendorResponse.json();
+        const vendorData = await ApiClient.get<VendorResponse>(`/vendors/${user.uid}`, token);
         setVendorData(vendorData);
 
         // Then fetch venues using vendor's ID
-        const venuesResponse = await fetch(`/api/explore-venues/venues-by-vendor/${vendorData._id}`, {
-          headers: {
-            'Authorization': 'Bearer ' + token
-          }
-        });
-
-        if (!venuesResponse.ok) throw new Error('Failed to fetch venues');
-        const venuesData = await venuesResponse.json();
+        const venuesData = await ApiClient.get<VenuesResponse>(`/explore-venues/venues-by-vendor/${vendorData._id}`, token);
         
         if (venuesData.success) {
           setVenues(venuesData.venues);
@@ -266,8 +271,8 @@ export default function VenueManagement() {
     try {
       const token = await user.getIdToken();
       const endpoint = selectedVenue?._id 
-        ? `/api/explore-venues/${selectedVenue._id}`
-        : '/api/explore-venues';
+        ? `/explore-venues/${selectedVenue._id}`
+        : '/explore-venues';
 
       // Add vendor ID to form data if creating new venue
       const updatedFormData = {
@@ -275,16 +280,12 @@ export default function VenueManagement() {
         vendor: vendorData._id, // Add the vendor reference
       };
 
-      const response = await fetch(endpoint, {
-        method: selectedVenue?._id ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify(updatedFormData)
-      });
-
-      if (!response.ok) throw new Error('Failed to save venue');
+      // Create or update venue
+      if (selectedVenue?._id) {
+        await ApiClient.put<ApiResponse<VenueDetails>>(endpoint, updatedFormData, token);
+      } else {
+        await ApiClient.post<ApiResponse<VenueDetails>>(endpoint, updatedFormData, token);
+      }
       
       toast.success(`Venue ${selectedVenue?._id ? 'updated' : 'created'} successfully`);
       setIsCreating(false);
@@ -292,14 +293,9 @@ export default function VenueManagement() {
       
       // Refresh venues list using vendor ID
       if (vendorData?._id) {
-        const updatedVenuesRes = await fetch(`/api/explore-venues/venues-by-vendor/${vendorData._id}`, {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (updatedVenuesRes.ok) {
-          const updatedVenuesData = await updatedVenuesRes.json();
-          if (updatedVenuesData.success) {
-            setVenues(updatedVenuesData.venues);
-          }
+        const updatedVenuesData = await ApiClient.get<VenuesResponse>(`/explore-venues/venues-by-vendor/${vendorData._id}`, token);
+        if (updatedVenuesData.success) {
+          setVenues(updatedVenuesData.venues);
         }
       }
     } catch (error) {

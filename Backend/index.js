@@ -13,9 +13,11 @@ const PORT = process.env.PORT || 5000;
 
 connectToMongo(process.env.MONGODB_URI);
 
-// CORS Configuration for local development
+// CORS Configuration
 const corsOptions = {
-  origin: 'http://localhost:5173', // Frontend runs on this port in dev
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.FRONTEND_URL  // Frontend URL from env variable
+    : 'http://localhost:5173', // Frontend local development URL
   credentials: true,
   optionsSuccessStatus: 200
 };

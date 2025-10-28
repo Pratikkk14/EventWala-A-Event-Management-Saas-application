@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { EventTypeContext } from "../context/EventTypeContext";
+import ApiClient from "../utils/apiClient";
 import { useInquiry } from "../context/InquiryContext";
 // import ImageSlider from "./ImageSlider";
 import { useParams } from "react-router-dom";
@@ -112,29 +113,28 @@ const VenueVendorProfile = () => {
       try {
         // Fetch venue by ID, populate vendor
         console.log("Fetching venue data for ID:", venueId);
-        const res = await fetch(`/api/explore-venues/${venueId}`);
-        if (!res.ok) {
-          console.error("API response not OK:", res.status, res.statusText);
-          throw new Error(`Failed to fetch venue: ${res.status} ${res.statusText}`);
+        const response = await ApiClient.get<{ venue: Venue }>(`/api/explore-venues/${venueId}`);
+        
+        if (!response.data?.venue) {
+          throw new Error('No venue data received from API');
         }
         
-        const venueData = await res.json();
-        
         // Enhanced logging for debugging
-        console.log("API Response:", venueData);
-        console.log("Venue data:", venueData.venue);
-        console.log("Photos field (venue.photo):", venueData.venue.photo);
-        console.log("Photos field (venue.photos):", venueData.venue.photos);
+        console.log("API Response:", response);
+        const venueData = response.data.venue;
+        console.log("Venue data:", venueData);
+        console.log("Photos field (venue.photo):", venueData.photo);
+        console.log("Photos field (venue.photos):", venueData.photos);
         
         // Check if we have image data in the expected format
-        const photoArray = venueData.venue.photo || venueData.venue.photos;
+        const photoArray = venueData.photo || venueData.photos;
         if (!photoArray || !Array.isArray(photoArray)) {
           console.warn("No photo array found or it's not an array:", photoArray);
           
           // If we have photo data but it's not in the right format, try to normalize it
-          if (venueData.venue.photo && !Array.isArray(venueData.venue.photo)) {
+          if (venueData.photo && !Array.isArray(venueData.photo)) {
             console.log("Attempting to normalize non-array photo field");
-            venueData.venue.photo = [venueData.venue.photo]; 
+            venueData.photo = [venueData.photo]; 
           }
         } else {
           console.log("Photo array length:", photoArray.length);
@@ -143,13 +143,13 @@ const VenueVendorProfile = () => {
         
         // Normalize data structure before setting to state
         const normalizedVenue = {
-          ...venueData.venue,
+          ...venueData,
           // Ensure we have a consistent photos field
-          photo: venueData.venue.photo || []
+          photo: venueData.photo || []
         };
         
         setVenue(normalizedVenue);
-        setVendor(venueData.venue.vendor);
+        setVendor(venueData.vendor || null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
@@ -291,28 +291,23 @@ const VenueVendorProfile = () => {
           console.log("VenueVendorProfile: Creating event in backend:", eventData);
           
           // Send to backend API
-          const response = await fetch('/api/explore-events', {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + (await user.getIdToken()),
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(eventData),
-          });
-          
-          const result = await response.json();
+          const response = await ApiClient.post<{ success: boolean; _id?: string; message?: string }>('/explore-events', eventData);
+          const result = response.data;
           console.log("Backend response:", result);
           
-          if (result.success) {
+          if (result?.success && result._id) {
             console.log(`Event created successfully with ID: ${result._id}`);
-            // Store the backend event ID in the inquiry data
-            inquiryData.backendEventId = result._id;
+            // Create a new inquiry object with the backend event ID
+            const updatedInquiry = {
+              ...inquiryData,
+              backendEventId: result._id
+            };
             
             // We already added the inquiry above, but we'll add the eventId to it in context
             // by updating the inquiries array
-            addInquiry({...inquiryData});
+            addInquiry(updatedInquiry);
           } else {
-            console.error("Failed to create event in backend:", result.message);
+            console.error("Failed to create event in backend:", result?.message);
           }
         } catch (error) {
           console.error("Failed to create event in backend:", error);

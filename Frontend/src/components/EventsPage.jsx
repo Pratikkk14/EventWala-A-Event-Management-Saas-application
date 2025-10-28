@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { EventTypeContext } from '../context/EventTypeContext';
+import ApiClient from '../utils/apiClient';
 
 // The cool theme styles from your existing Dashboard.jsx
 const theme = {
@@ -89,13 +90,10 @@ const EventsPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        let url = `/api/explore-venues?eventTypes=${encodeURIComponent(eventType)}`;
-        
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to fetch events");
-        const data = await res.json();
-        setEvent(data.venues || []);
+        const response = await ApiClient.get(`/api/explore-venues?eventTypes=${encodeURIComponent(eventType)}`);
+        setEvent(response.data?.venues || []);
       } catch (err) {
+        console.error('Failed to fetch events:', err);
         setEvent([]);
       }
     };

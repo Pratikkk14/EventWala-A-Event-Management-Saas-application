@@ -8,6 +8,7 @@ import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { useNavigate } from "react-router-dom";
 import { useLocationContext } from "../context/LocationContext";
+import ApiClient from '../utils/apiClient';
 
 
 // Fix default icon issue
@@ -65,11 +66,8 @@ const MapComponent = ({ center, zoom = 13 }) => {
             const encodedPincode = btoa(searchPincode.trim());
             query += `&pincode=${encodeURIComponent(encodedPincode)}`;
           }
-          const url = `/api/explore-venues/all-events?${query}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error("Failed to fetch events");
-          const data = await res.json();
-          setLocations(data.locations || []);
+          const response = await ApiClient.get(`/api/explore-venues/all-events?${query}`);
+          setLocations(response.data?.locations || []);
         } catch (err) {
           setLocations([]);
         } finally {

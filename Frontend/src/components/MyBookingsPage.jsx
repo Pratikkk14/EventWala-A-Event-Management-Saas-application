@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import ApiClient from '../utils/apiClient';
 
 // --- Main Page Component ---
 
@@ -15,29 +16,18 @@ const MyBookingsPage = () => {
         const fetchBookings = async () => {
             if (!user) return;
             try {
-                const token = await getIdToken();
                 // First fetch the MongoDB user data
-                const userResponse = await fetch(`/api/DB_Routes/user/${user.uid}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                const userData = await userResponse.json();
-                if (!userData.success || !userData.data) {
+                const userResponse = await ApiClient.get(`/api/DB_Routes/user/${user.uid}`);
+                if (!userResponse.data?.success || !userResponse.data?.data) {
                     setError('User not found');
                     return;
                 }
                 
-                const response = await fetch(`/api/explore-events/${userData.data._id}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                const data = await response.json();
-                if (data.success) {
-                    setBookings(data.events);
+                const response = await ApiClient.get(`/api/explore-events/${userResponse.data.data._id}`);
+                if (response.data?.success) {
+                    setBookings(response.data.events);
                 } else {
-                    setError(data.message);
+                    setError(response.data?.message || 'Failed to fetch events');
                 }
             } catch (err) {
                 setError('Failed to fetch bookings');

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import { EventTypeContext } from "../context/EventTypeContext";
 import { useLocationContext } from "../context/LocationContext";
 import { useAuth } from "../hooks/useAuth";
+import ApiClient  from "../utils/apiClient";
 
 import {
   Search,
@@ -52,19 +53,14 @@ const Dashboard: React.FC = () => {
       if (!user?.uid) return;
 
       try {
-        const token = await user.getIdToken();
-        const response = await fetch('/api/DB_Routes/user/' + user.uid, {
-          headers: {
-            'Authorization': 'Bearer ' + token
-          }
-        });
+        const response = await ApiClient.get(`/DB_Routes/user/${user.uid}`);
         
-        if (!response.ok) {
+        if (!response.success) {
           console.log('Profile not found, using default values');
           return;
         }
         
-        const data = await response.json();
+        const data = response;
         if (data.success && data.data) {
           setMongoUser(data.data);
         }

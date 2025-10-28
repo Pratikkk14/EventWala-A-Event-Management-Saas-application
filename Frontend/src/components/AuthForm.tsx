@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import ApiClient from '../utils/apiClient';
 import { Eye, EyeOff, ArrowLeft, Mail, Lock, User, Chrome } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import StarryBackground from './StarryBackground';
@@ -46,16 +47,10 @@ const AuthForm: React.FC = () => {
       const user = userCredential?.user || userCredential; // adapt to your useAuth return
       if (user?.uid && user?.email) {
         try {
-          const checkRes = await fetch(`/api/DB_Routes/auth-user/${user.uid}`, {
-            headers: { Authorization: `Bearer ${await user.getIdToken()}` }
-          });
-          const checkJson = await checkRes.json();
+          const checkJson = await ApiClient.get(`/DB_Routes/auth-user/${user.uid}`);
           if (!checkJson.success) {
             // Not in MongoDB, create user
-            await fetch('/api/DB_Routes/createuser', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+            await ApiClient.post('/DB_Routes/createuser', {
                 uid: user.uid,
                 email: user.email,
                 firstName: user.displayName?.split(' ')[0] || data.firstName || '',

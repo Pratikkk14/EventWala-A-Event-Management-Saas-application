@@ -1,8 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Clock, Users, Mail, MapPin, Check, ChevronDown, ChevronUp, AlertCircle, Loader2, CalendarDays, DollarSign } from 'lucide-react';
+import ApiClient from '../utils/apiClient';
 import { useInquiry, Inquiry } from '../context/InquiryContext';
 import { debugLocalStorage } from '../utils/localStorage';
 import { useAuth } from '../hooks/useAuth';
+
+interface EventApiResponse {
+    success: boolean;
+    message?: string;
+    eventId?: string;
+}
 interface SortConfig {
     key: keyof Inquiry;
     direction: 'ascending' | 'descending';
@@ -182,33 +189,15 @@ const InquiryQueue = () => {
             console.log("Event data to be sent to backend:", eventData);
             
             try {
-                let token = '';
-                
-                if (user) {
-                    token = await user.getIdToken();
-                } else {
-                    console.error("No authenticated user found");
-                }
-                
                 if (oldestInquiry.backendEventId) {
                     console.log(`Updating existing event with ID: ${oldestInquiry.backendEventId}`);
                     
-                    // Update existing event status using PATCH endpoint
-                    const updateResponse = await fetch(`/api/explore-events/${oldestInquiry.backendEventId}/status`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ eventStatus: 'Confirmed' }),
-                    });
-                    
-                    const updateResult = await updateResponse.json();
-                    
-                    if (updateResult.success) {
+                    // Update existing event status using PUT endpoint
+                    const updateResponse = await ApiClient.put<EventApiResponse>(`/api/explore-events/${oldestInquiry.backendEventId}/status`, { eventStatus: 'Confirmed' });
+                    if (updateResponse.data?.success) {
                         console.log(`Event status updated successfully for ID: ${oldestInquiry.backendEventId}`);
                     } else {
-                        console.error(`Failed to update event status: ${updateResult.message}`);
+                        console.error(`Failed to update event status: ${updateResponse.data?.message || 'Unknown error'}`);
                     }
                 } else {
                     // If no existing event ID, create a new confirmed event
@@ -217,24 +206,19 @@ const InquiryQueue = () => {
                     // We've already added the userId to the eventData above
                     // No need to modify it again here
                     
-                    const response = await fetch('/api/explore-events', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(eventData),
-                    });
+                    const response = await ApiClient.put<EventApiResponse>('/explore-events', eventData);
+                    const responseData = response.data;
                     
-                    const result = await response.json();
-                    console.log("Backend response for event creation:", result);
+                    console.log("Backend response for event creation:", responseData);
                     
-                    if (result.success) {
-                        console.log(`Event created successfully with ID: ${result.eventId}`);
-                        // Save the event ID to the inquiry
-                        oldestInquiry.backendEventId = result.eventId;
+                    if (responseData?.success) {
+                        if (responseData.eventId) {
+                            console.log(`Event created successfully with ID: ${responseData.eventId}`);
+                            // Save the event ID to the inquiry
+                            oldestInquiry.backendEventId = responseData.eventId;
+                        }
                     } else {
-                        console.error("Failed to create event in backend:", result.message);
+                        console.error("Failed to create event in backend:", responseData?.message || 'Unknown error');
                     }
                 }
                 

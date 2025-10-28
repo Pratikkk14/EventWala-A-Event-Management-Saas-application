@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from "../hooks/useAuth";
+import ApiClient from '../utils/apiClient';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -33,44 +34,19 @@ const BecomeVendorForm = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setSubmissionStatus('loading');
-  const vendorPayload = {
-    ...formData,
-    uid: user.uid,
-    role: 'vendor',
-  };
-  try {
-    const response = await fetch('/api/vendors', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(vendorPayload),
-    });
-    const result = await response.json();
-    if (result.success) {
-      // Update user role in MongoDB
-      await fetch(`/api/DB_Routes/updateuser/${user.uid}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${await user.getIdToken()}`,
-        },
-        body: JSON.stringify({ role: "vendor" }),
-      });
-      setSubmissionStatus('success');
-      navigate('/vendor-dashboard');
-    } else {
-      setSubmissionStatus('error');
-      console.error('Vendor Onboarding Failed:', result.message || result);
-    }
-  } catch (error) {
-    console.error('Vendor Onboarding Failed:', error);
-    setSubmissionStatus('error');
-  }
-};
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await ApiClient.post('/api/db/vendor/add', formData);
+            if (response) {
+                console.log('Vendor data submitted successfully');
+                // Handle successful submission
+                navigate('/vendor-dashboard'); // Redirect to vendor dashboard
+            }
+        } catch (error) {
+            console.error('Error submitting vendor data:', error);
+        }
+    };
 
   const isFormValid = vendorFields.every(field => {
     const value = formData[field.name];

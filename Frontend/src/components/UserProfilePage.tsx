@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from "../hooks/useAuth";
+import ApiClient from '../utils/apiClient';
 import { toast } from 'react-hot-toast';
 import { uploadUserProfileImage } from '../services/storage';
 
@@ -199,26 +200,18 @@ export default function UserProfilePage() {
       if (!user?.uid) return;
 
       try {
-        const token = await user.getIdToken();
-        const response = await fetch('/api/DB_Routes/user/' + user.uid, {
-          headers: {
-            'Authorization': 'Bearer ' + token
-          }
-        });
+        const response = await ApiClient.get<UserProfile>(`/DB_Routes/user/${user.uid}`);
         
-        if (!response.ok) {
+        if (!response.success) {
           console.log('Profile not found, using default values');
           // If user profile doesn't exist, keep the default form data
           return;
         }
         
-        const data = await response.json();
-        console.log('Profile data from server:', data); // Debug log
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        console.log('Profile data from server:', response); // Debug log
         
-        if (data.success && data.data) {
-          const userData = data.data;
+        if (response.data) {
+          const userData = response.data;
           // Merge fetched data with default structure to ensure all fields exist
           const mergedData: UserProfile = {
             firstName: userData.firstName || user?.displayName?.split(' ')[0] || '',
@@ -363,22 +356,19 @@ export default function UserProfilePage() {
       console.log('Submitting form data:', formData); // Debug log
 
       // Update user profile
-      const updateResponse = await fetch(`/api/DB_Routes/updateuser/${user.uid}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + (await user.getIdToken())
-        },
-        body: JSON.stringify(formData) // Send the complete formData object
-      });
+      const updateResponse = await ApiClient.put<UserProfile>(
+        `/DB_Routes/updateuser/${user.uid}`,
+        formData
+      );
 
-      if (!updateResponse.ok) throw new Error('Failed to update profile');
+      if (!updateResponse.success) {
+        throw new Error('Failed to update profile');
+      }
       
-      const result = await updateResponse.json();
-      if (result.success) {
+      if (updateResponse.success) {
         toast.success('Profile updated successfully');
       } else {
-        throw new Error(result.message || 'Failed to update profile');
+        throw new Error(updateResponse.message || 'Failed to update profile');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
