@@ -9,13 +9,13 @@ const Vendor_Router = require('./Routes/Vendor_Router');
 const cors = require('cors');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
 connectToMongo(process.env.MONGODB_URI);
 
-// CORS Configuration
+// CORS Configuration for local development
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:4000',
+  origin: 'http://localhost:5173', // Frontend runs on this port in dev
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -24,7 +24,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
-
 
 // Routes
 app.use("/api/DB_Routes", DB_Router);
@@ -36,8 +35,6 @@ app.use("/api/vendors", Vendor_Router);
 app.get('/', (req, res) => {
     res.send('EventWala Backend is running!');
 });
-
-
 
 // Error handling middleware
 app.use((err, req, res, next) => {

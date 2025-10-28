@@ -29,12 +29,52 @@ import {
 const defaultAvatar = "/images/UserAvatars/Male.png";
 import { useNavigate } from "react-router-dom";
 
+interface MongoUser {
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: {
+    fileId?: string;
+    url?: string;
+    fileName?: string;
+  };
+}
+
 const Dashboard: React.FC = () => {
-
-
   const { user, logout } = useAuth();
+  const [mongoUser, setMongoUser] = useState<MongoUser | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+
+  // Fetch MongoDB user data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.uid) return;
+
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch('/api/DB_Routes/user/' + user.uid, {
+          headers: {
+            'Authorization': 'Bearer ' + token
+          }
+        });
+        
+        if (!response.ok) {
+          console.log('Profile not found, using default values');
+          return;
+        }
+        
+        const data = await response.json();
+        if (data.success && data.data) {
+          setMongoUser(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [typedText, setTypedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -249,10 +289,10 @@ const Dashboard: React.FC = () => {
   );
 
   const renderProfileImage = () => {
-    if (user?.photoURL) {
+    if (mongoUser?.avatar?.url || user?.photoURL) {
       return (
         <img
-          src={user.photoURL}
+          src={mongoUser?.avatar?.url || user?.photoURL || defaultAvatar}
           alt="User"
           className="w-8 h-8 rounded-full object-cover"
         />
@@ -279,10 +319,10 @@ const Dashboard: React.FC = () => {
   };
 
   const renderSidebarProfileImage = () => {
-    if (user?.photoURL) {
+    if (mongoUser?.avatar?.url || user?.photoURL) {
       return (
         <img
-          src={user.photoURL}
+          src={mongoUser?.avatar?.url || user?.photoURL || defaultAvatar}
           alt="User"
           className="w-12 h-12 rounded-full object-cover"
         />

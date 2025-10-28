@@ -63,6 +63,46 @@ import { buildApiUrl } from './utils/apiConfig';
 const apiUrl = buildApiUrl('/explore-events');
 ```
 
+
+# EventWala Deployment Guide
+
+This guide explains how to deploy the EventWala application to any cloud platform or server.
+
+## Preparing the Application for Deployment
+
+### Backend Deployment
+
+1. Set up your backend server (Node.js, Express, MongoDB).
+2. Configure environment variables in your server environment:
+   - `MONGODB_URI`: Your MongoDB connection string
+   - `FRONTEND_URL`: The URL of your deployed frontend
+   - `APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`, `APPWRITE_API_KEY`, `APPWRITE_BUCKET_ID`: If using Appwrite
+   - `FIREBASE_SERVICE_ACCOUNT`: Your Firebase service account JSON
+3. Deploy the backend and note the deployment URL.
+
+### Frontend Deployment
+
+1. Update the frontend environment variables:
+   - Edit `/Frontend/.env` and set `VITE_BACKEND_URL` to your backend deployment URL
+2. Build the frontend:
+   - Run `npm run build` in `/Frontend`
+   - Deploy the contents of `/Frontend/dist` to your static hosting provider
+3. Configure environment variables in your hosting platform as needed.
+
+## Using Environment Variables in Your Code
+
+### In the Backend
+```javascript
+// Access environment variables using process.env
+const frontendUrl = process.env.FRONTEND_URL;
+```
+
+### In the Frontend
+```javascript
+// Access environment variables using import.meta.env
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
+```
+
 ## Testing Your Deployment
 
 1. Verify that the frontend can communicate with the backend
@@ -74,29 +114,11 @@ const apiUrl = buildApiUrl('/explore-events');
 - **CORS Errors**: Make sure the backend CORS settings allow your frontend URL
 - **API Connection Issues**: Verify environment variables are set correctly
 - **Database Connection Issues**: Check your MongoDB connection string
-- **Missing Environment Variables**: Ensure all required variables are set in Vercel
-
-## Testing Locally Before Deployment (Optional)
-
-You can test your build process locally to catch any issues before deploying:
-
-### Frontend:
-```bash
-cd Frontend
-npm install
-npm run build  # This creates a 'dist' directory with the production build
-```
-
-### Backend:
-```bash
-cd Backend
-npm install    # Ensure all dependencies are installed
-npm start      # Test that the server runs correctly
-```
+- **Missing Environment Variables**: Ensure all required variables are set in your hosting platform
 
 ## Updating Your Deployment
 
 After making changes to your code:
 
-1. Push to GitHub
-2. Vercel will automatically rebuild and deploy your changes
+1. Push to your repository
+2. Rebuild and redeploy your application

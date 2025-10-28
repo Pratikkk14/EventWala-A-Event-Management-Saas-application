@@ -9,7 +9,6 @@ export const getApiBaseUrl = () => {
   if (import.meta.env.VITE_BACKEND_URL) {
     return import.meta.env.VITE_BACKEND_URL;
   }
-  
   // Default to local development
   return 'http://localhost:5000';
 };
@@ -21,15 +20,9 @@ export const buildApiUrl = (endpoint: string) => {
   const formattedEndpoint = endpoint.startsWith('/api') 
     ? endpoint 
     : `/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-    
   // Handle both absolute URLs (from env var) and relative URLs
   if (baseUrl.includes('://')) {
     return `${baseUrl}${formattedEndpoint}`;
   }
-  
   return formattedEndpoint;
 };
-
-// Examples:
-// buildApiUrl('/explore-events') => 'http://localhost:5000/api/explore-events' (local dev)
-// buildApiUrl('/explore-events') => 'https://your-backend-url.vercel.app/api/explore-events' (production)
