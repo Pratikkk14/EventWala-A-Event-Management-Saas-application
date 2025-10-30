@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import ApiClient, { ApiResponse } from '../utils/apiClient';
 import { Eye, EyeOff, ArrowLeft, Mail, Lock, User, Chrome } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import StarryBackground from './StarryBackground';
@@ -13,7 +14,7 @@ interface FormData {
   agreeToTerms?: boolean;
 }
 
-const AuthForm: React.FC = () => {
+const AuthForm: React.FC<Record<string, never>> = (): JSX.Element => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,15 +31,35 @@ const AuthForm: React.FC = () => {
     setError('');
 
     try {
+      let userCredential;
       if (isLogin) {
-        await signIn(data.email, data.password);
+        userCredential = await signIn(data.email, data.password);
       } else {
         if (data.password !== data.confirmPassword) {
           setError('Passwords do not match');
           setLoading(false);
           return;
         }
-        await signUp(data.email, data.password, data.firstName!, data.lastName!);
+        userCredential = await signUp(data.email, data.password, data.firstName!, data.lastName!);
+      }
+
+                  // After successful Firebase login/signup, check MongoDB
+      const user = userCredential?.user || userCredential; // adapt to your useAuth return
+      if (user?.uid && user?.email) {
+        try {
+          const checkJson = await ApiClient.get<ApiResponse<any>>(`/DB_Routes/auth-user/${user.uid}`);
+          if (!checkJson.success) {
+            // Not in MongoDB, create user
+            await ApiClient.post<ApiResponse<any>>('/DB_Routes/createuser', {
+              uid: user.uid,
+              email: user.email,
+              firstName: user.displayName?.split(' ')[0] || data.firstName || '',
+              lastName: user.displayName?.split(' ')[1] || data.lastName || ''
+            });
+          }
+        } catch (err) {
+          console.error('Error checking/creating MongoDB user:', err);
+        }
       }
       reset();
     } catch (error: any) {
@@ -48,10 +69,30 @@ const AuthForm: React.FC = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+    const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
-      await signInWithGoogle();
+      setError('');
+      const result = await signInWithGoogle();
+      const user = result?.user;
+      
+      if (user?.uid && user?.email) {
+        try {
+          const checkJson = await ApiClient.get<ApiResponse<any>>(`/DB_Routes/auth-user/${user.uid}`);
+          if (!checkJson.success) {
+            const names = user.displayName?.split(' ') || ['', ''];
+            await ApiClient.post<ApiResponse<any>>('/DB_Routes/createuser', {
+              uid: user.uid,
+              email: user.email,
+              firstName: names[0] || '',
+              lastName: names[1] || ''
+            });
+          }
+        } catch (err) {
+          console.error('Error checking/creating MongoDB user:', err);
+          // Don't surface this error since Firebase auth was successful
+        }
+      }
     } catch (error: any) {
       setError(error.message || 'Failed to sign in with Google');
     } finally {

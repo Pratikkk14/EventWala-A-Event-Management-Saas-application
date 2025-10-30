@@ -11,9 +11,26 @@ import {
   confirmPasswordReset
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import { ApiClient } from '../utils/apiConfig';
+
+interface MongoUser {
+  _id: string;
+  uid: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  [key: string]: any;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [mongoUser, setMongoUser] = useState<MongoUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,6 +41,24 @@ export const useAuth = () => {
 
     return unsubscribe;
   }, []);
+
+useEffect(() => {
+  const fetchMongoUser = async () => {
+    if (user) {
+      try {
+        const token = await user.getIdToken();
+        const userData = await ApiClient.get<MongoUser>(`/DB_Routes/user/${user.uid}`, token);
+        setMongoUser(userData);
+      } catch (error) {
+        console.error('Failed to fetch MongoDB user:', error);
+        setMongoUser(null);
+      }
+    } else {
+      setMongoUser(null);
+    }
+  };
+  fetchMongoUser();
+}, [user]);
 
   const signIn = async (email: string, password: string) => {
     return signInWithEmailAndPassword(auth, email, password);
@@ -94,29 +129,27 @@ export const useAuth = () => {
     return auth.currentUser.getIdToken();
   };
 
-  const createMongoDBUser = async (userData:
-    {
-      uid: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-    }) => { 
-    const response = await fetch("/api/DB_Routes/createuser", {
-      method: "POST",
-      headers: {
-      "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-    });
-    if (!response.ok) {
+  const createMongoDBUser = async (userData: {
+    uid: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  }) => {
+    try {
+      const response = await ApiClient.post<ApiResponse<MongoUser>>('/DB_Routes/createuser', userData);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to create user in MongoDB");
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create MongoDB user:', error);
       throw new Error("Failed to create user in MongoDB");
     }
-
-    return response.json();
   };
 
   return {
     user,
+    mongoUser,
     loading,
     signIn,
     signUp,

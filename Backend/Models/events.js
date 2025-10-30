@@ -2,22 +2,7 @@ const mongoose = require("mongoose");
 const Venue = require("./venue");
 const Vendor = require("./vendor");
 const User = require("./users");
-
-
-const serviceSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: String,
-  price: Number,
-  vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
-  isAddonToVenue: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
-
-serviceSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
-  next();
-});
+const Service = require("./services");
 
 
 const eventSchema = new mongoose.Schema({
@@ -44,7 +29,11 @@ const eventSchema = new mongoose.Schema({
   host: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
   services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }],
-  guests: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  eventStatus: {
+    type: String,
+    enum: ["Pending", "Confirmed", "Completed", "Cancelled"],
+    required: true,
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
@@ -55,7 +44,4 @@ eventSchema.pre("save", function (next) {
 });
 
 
-module.exports = {
-  Service: mongoose.model("Service", serviceSchema),
-  Event: mongoose.model("Event", eventSchema)
-};
+module.exports = mongoose.model("Event", eventSchema);

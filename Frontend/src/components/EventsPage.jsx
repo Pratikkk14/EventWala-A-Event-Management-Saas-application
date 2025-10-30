@@ -3,18 +3,15 @@ import {
   Search,
   ChevronRight,
   ChevronLeft,
-  SlidersHorizontal,
-  MapPin,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { EventTypeContext } from '../context/EventTypeContext';
+import ApiClient from '../utils/apiClient';
 
 // The cool theme styles from your existing Dashboard.jsx
 const theme = {
   background: "bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900",
-  sidebarBg: "bg-slate-800/80",
-  sidebarBorder: "border-white/10",
-  sidebarAccent: "bg-purple-600/20",
+  // Removed sidebar related styles
   textMain: "text-white",
   textAccent: "text-purple-300",
   textSubtle: "text-purple-200",
@@ -57,25 +54,10 @@ const styleTag = (
   </style>
 );
 
-// New component for sidebar content
-const SidebarContent = ({ isFiltersOpen, theme }) => (
-  <div
-    className={`p-4 transition-opacity duration-300 ${
-      isFiltersOpen ? "opacity-100" : "opacity-0 hidden"
-    }`}
-  >
-    <h3 className={`${theme.textMain} text-sm font-semibold mb-2`}>
-      By Location
-    </h3>
-    <div className="flex items-center mb-4">
-      <MapPin className={`${theme.textAccent} w-4 h-4 mr-2`} />
-      <span className={`${theme.textSubtle}`}>Location</span>
-    </div>
-  </div>
-);
+// Sidebar content removed
 
 const EventsPage = () => {
-  const [isFiltersOpen, setIsFiltersOpen] = useState(true);
+  // Removed isFiltersOpen state since sidebar is being removed
   const [promoIndex, setPromoIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
@@ -88,50 +70,15 @@ const EventsPage = () => {
     "Major Events / Sponsored Events Promo 3",
   ];
 
-  const allEvents = [
-    {
-      id: 1,
-      title: "Event A",
-      location: "City A",
-      image: "https://placehold.co/400x250/312e81/ffffff?text=Event+A",
-    },
-    {
-      id: 2,
-      title: "Event B",
-      location: "City B",
-      image: "https://placehold.co/400x250/4f46e5/ffffff?text=Event+B",
-    },
-    {
-      id: 3,
-      title: "Event C",
-      location: "City C",
-      image: "https://placehold.co/400x250/6d28d9/ffffff?text=Event+C",
-    },
-    {
-      id: 4,
-      title: "Event D",
-      location: "City D",
-      image: "https://placehold.co/400x250/7c3aed/ffffff?text=Event+D",
-    },
-    {
-      id: 5,
-      title: "Event E",
-      location: "City E",
-      image: "https://placehold.co/400x250/8b5cf6/ffffff?text=Event+E",
-    },
-    {
-      id: 6,
-      title: "Event F",
-      location: "City F",
-      image: "https://placehold.co/400x250/a78bfa/ffffff?text=Event+F",
-    },
-  ];
-
-  const filteredEvents = allEvents.filter(
-    (event) =>
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter venues by name or location (city, address, pincode)
+  const filteredEvents = event.filter((venue) => {
+  const nameMatch = venue.name?.toLowerCase().includes(searchQuery.toLowerCase());
+  const cityMatch = venue.address?.city?.toLowerCase().includes(searchQuery.toLowerCase());
+  const addressLine1Match = venue.address?.addressLine1?.toLowerCase().includes(searchQuery.toLowerCase());
+  const addressLine2Match = venue.address?.addressLine2?.toLowerCase().includes(searchQuery.toLowerCase());
+  const pincodeMatch = venue.address?.pincode?.toLowerCase().includes(searchQuery.toLowerCase());
+  return nameMatch || cityMatch || addressLine1Match || addressLine2Match || pincodeMatch;
+});
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -143,13 +90,10 @@ const EventsPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        let url = `/api/explore-venues/by-type/${eventType}`;
-        
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to fetch events");
-        const data = await res.json();
-        setEvent(data.venues || []);
+        const response = await ApiClient.get(`/api/explore-venues?eventTypes=${encodeURIComponent(eventType)}`);
+        setEvent(response.data?.venues || []);
       } catch (err) {
+        console.error('Failed to fetch events:', err);
         setEvent([]);
       }
     };
@@ -163,38 +107,12 @@ const EventsPage = () => {
 
   return (
     <div
-      className={`min-h-screen relative overflow-hidden ${theme.background} ${theme.font} flex flex-col md:flex-row p-4`}
+      className={`min-h-screen relative overflow-hidden ${theme.background} ${theme.font} flex flex-col p-4`}
     >
       {styleTag}
 
-      {/* Filters Sidebar */}
-      <aside
-        className={`${isFiltersOpen ? "w-64" : "w-16"} ${
-          theme.sidebarBg
-        } border ${
-          theme.sidebarBorder
-        } rounded-3xl m-4 transition-all duration-300 ease-in-out flex flex-col h-[calc(100vh-2rem)]`}
-      >
-        <div
-          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-          className="flex justify-between items-center p-4 cursor-pointer"
-        >
-          <div className="flex items-center">
-            <SlidersHorizontal className={`w-6 h-6 ${theme.textMain}`} />
-            <h2
-              className={`font-bold text-lg ml-2 transition-opacity duration-300 ${
-                isFiltersOpen ? "opacity-100" : "opacity-0"
-              } ${theme.textMain}`}
-            >
-              Filters
-            </h2>
-          </div>
-        </div>
-        <SidebarContent isFiltersOpen={isFiltersOpen} theme={theme} />
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 flex flex-col overflow-x-hidden">
+      {/* Main Content - now taking full width since sidebar is removed */}
+      <main className="w-full p-4 md:p-8 flex flex-col overflow-x-hidden">
         {/* Search Bar */}
         <div className="relative mb-8">
           <Search
@@ -223,7 +141,7 @@ const EventsPage = () => {
                   (promoIndex - 1 + promoEvents.length) % promoEvents.length
                 )
               }
-              className={`p-2 rounded-full ${theme.sidebarAccent} hover:bg-white/20 transition-colors`}
+              className="p-2 rounded-full bg-purple-600/20 hover:bg-white/20 transition-colors"
             >
               <ChevronLeft className="w-6 h-6 text-white" />
             </button>
@@ -236,7 +154,7 @@ const EventsPage = () => {
               onClick={() =>
                 setPromoIndex((promoIndex + 1) % promoEvents.length)
               }
-              className={`p-2 rounded-full ${theme.sidebarAccent} hover:bg-white/20 transition-colors`}
+              className="p-2 rounded-full bg-purple-600/20 hover:bg-white/20 transition-colors"
             >
               <ChevronRight className="w-6 h-6 text-white" />
             </button>
@@ -260,7 +178,7 @@ const EventsPage = () => {
             Listed Events Grid
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {event.map((venue) => {
+            {filteredEvents.map((venue) => {
               // Filter out empty values and join with comma
               const addressParts = [
                 venue.address?.addressLine1,

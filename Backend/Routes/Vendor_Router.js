@@ -12,7 +12,7 @@ const {
 
 // Route definitions
 router.get("/", getAllVendors);
-router.get("/:vendorId", getVendorById);
+router.get("/:uid", getVendorById);
 router.post("/", createVendor);
 router.put("/:vendorId", updateVendorById);
 router.delete("/:vendorId", deleteVendorById);

@@ -5,7 +5,19 @@ const path = require("path");
 
 const createUser = async (req, res) => {
   try {
-    const { uid, email, firstName, lastName } = req.body;
+    const { uid, email } = req.body;
+    let { firstName, lastName } = req.body;
+    console.log("Req body:", req.body);
+    // If firstName is missing or empty, use email prefix
+    if (!firstName || firstName.trim() === "") {
+      firstName = email ? email.split("@")[0] : "User";
+    }
+    // If lastName is missing, set to empty string
+    if (!lastName) {
+      lastName = "";
+    }
+
+    console.log("First Name:", firstName, "Last Name:", lastName);
 
     // Check if user already exists
     const existingUser = await User.findOne({ uid });
@@ -35,107 +47,54 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { uid } = req.params;
-    let updateData = {};
+    console.log("Updating user:", uid);
+    console.log("Request body:", req.body);
 
-    // Only allow specific fields to be updated
-    if (req.body.userData) {
-
-      const parsed = JSON.parse(req.body.userData);
-      console.log("Parsed userData:", parsed);
-
-      // Whitelist allowed fields
-      const allowedFields = [
-        "email",
-        "firstName",
-        "lastName",
-        "phone",
-        "dateOfBirth",
-        "gender",
-        "address",
-        "socialProfiles",
-        "preferences",
-        "role",
-        "isVerified",
-        "accountStatus",
-        "accountType",
-        "socialProfiles",
-        "eventsHosted",
-        "eventsAttended",
-        "bookmarks",
-        "guests",
-        "defaultPaymentMethod",
-      ];
-      allowedFields.forEach((field) => {
-        if (parsed[field] !== undefined) {
-          updateData[field] = parsed[field];
-        }
-      });
-    }
-
-    // Add avatar data if file was uploaded
-    if (req.file) {
-      updateData.avatar = {
-        data: req.file.buffer,
-        contentType: req.file.mimetype,
-      };
-      console.log("Avatar buffer length:", req.file?.buffer?.length);
-    }
-
-    // Prevent updating UID or other sensitive fields
+    const updateData = { ...req.body };
+    
+    // Prevent updating sensitive fields
     delete updateData.uid;
     delete updateData._id;
+    delete updateData.role;
+    delete updateData.isVerified;
+    delete updateData.accountStatus;
+    delete updateData.accountType;
 
-    const user = await User.findOneAndUpdate({ uid }, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    console.log("Filtered update data:", updateData);
 
-    if (!user) {
+    // Find and update the user
+    const updatedUser = await User.findOneAndUpdate(
+      { uid },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
 
+    console.log("Updated user:", updatedUser);
+
+    // Send back the updated user data
     res.status(200).json({
       success: true,
-      user: {
-        ...user.toObject(),
-        avatar:
-          user.avatar && user.avatar.data
-            ? {
-                contentType: user.avatar.contentType,
-                url: `data:${
-                  user.avatar.contentType
-                };base64,${user.avatar.data.toString("base64")}`,
-              }
-            : null,
-      },
+      user: updatedUser.toObject()
     });
+
   } catch (error) {
     console.error("User update error:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error while updating user profile",
+      error: error.message
     });
   }
 };
 
-const upload = multer({
-  limits: {
-    fieldSize: 5 * 1024 * 1024, // 5MB for text fields
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed"));
-    }
-  },
-});
-
 module.exports = {
   createUser,
   updateUser,
-  upload,
 };

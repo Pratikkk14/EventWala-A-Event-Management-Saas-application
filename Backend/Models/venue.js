@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
-require("./vendor");
+
+const Vendor = require("./vendor");
+const User = require("./users");
 
 const offerSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -21,11 +23,16 @@ const venueSchema = new mongoose.Schema({
     state: String,
     country: String,
   },
-  photos: [{ fileId: String }], // or URLs
-  vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" }, // Master vendor
+  photo: [{
+    fileId: String,
+    url: String,
+    fileName: String,
+    uploadedAt: { type: Date, default: Date.now }
+  }],
+  vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' }, // Master vendor
   vendorReview: [
     {
-      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // reviewer
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // reviewer
       rating: { type: Number, min: 1, max: 5, required: true },
       comment: { type: String },
       createdAt: { type: Date, default: Date.now },
@@ -72,6 +79,17 @@ const venueSchema = new mongoose.Schema({
     },
   ],
   offers: [offerSchema],
+  location: {
+    type: {
+      type: String,
+      enum: ["Point"], // 'location.type' must always be 'Point'
+      required: true,
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      required: true,
+    },
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

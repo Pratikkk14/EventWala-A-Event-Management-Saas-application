@@ -1,895 +1,492 @@
-import React, { useState, useEffect } from "react";
-import {
-  Edit3,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Facebook,
-  Instagram,
-  Linkedin,
-  Twitter,
-  Calendar,
-  Users,
-  Briefcase,
-  BarChart2,
-  Clock,
-  Bookmark,
-  Globe,
-  Bell,
-  CheckCircle,
-  CreditCard,
-} from "lucide-react";
-import toast from "react-hot-toast";
-
+import React, { useEffect, useState } from 'react';
 import { useAuth } from "../hooks/useAuth";
+import ApiClient from '../utils/apiClient';
+import { toast } from 'react-hot-toast';
+import { uploadUserProfileImage } from '../services/storage';
 
-// Avatar type definition
-type AvatarType = {
-  data: ArrayBuffer | Uint8Array;
-  contentType: string;
-} | undefined;
-
-
-const initialProfileData = {
-  name: "",
-  email: "",
-  phone: "",
-  address: "",
+interface UserProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  dateOfBirth?: string;
+  gender?: "male" | "female" | "other" | "prefer-not-to-say";
+  address: {
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+  };
   socialProfiles: {
-    facebook: "",
-    instagram: "",
-    linkedin: "",
-    twitter: "",
-  },
-  personalDetails: {
-    dob: "",
-    gender: "",
-  },
+    facebook?: string;
+    instagram?: string;
+    linkedin?: string;
+    twitter?: string;
+  };
   preferences: {
-    notifications: false,
-    language: "",
-    marketing: false,
-  },
-  accountManagement: {
-    role: "",
-    status: "",
-    verification: "",
-  },
-  activity: {
-    lastLogin: "",
-    createdAt: "",
-    updatedAt: "",
-    hostedEvents: 0,
-    attendedEvents: 0,
-    bookmarkedVenues: 0,
-  },
-  payment: {
-    defaultPaymentMethod: "",
-    billingAddress: "",
-  },
-  avatar: undefined as AvatarType, // Explicitly type avatar
-};
-
-type ProfileData = typeof initialProfileData & { avatar: AvatarType };
-
-const progressCalculator = (data: ProfileData, profileImage: File | null) => {
-  let completedFields = 0;
-  const totalFields = 17;
-
-  if (profileImage) completedFields++;
-  if (data.name) completedFields++;
-  if (data.email) completedFields++;
-  if (data.phone) completedFields++;
-  if (data.address) completedFields++;
-  if (Object.values(data.socialProfiles).some((url) => url)) completedFields++;
-  if (data.personalDetails.dob) completedFields++;
-  if (data.personalDetails.gender) completedFields++;
-  if (data.preferences.notifications) completedFields++;
-  if (data.preferences.language) completedFields++;
-  if (data.preferences.marketing) completedFields++;
-  if (data.accountManagement.role) completedFields++;
-  if (data.accountManagement.status) completedFields++;
-  if (data.accountManagement.verification) completedFields++;
-  if (data.payment.defaultPaymentMethod) completedFields++;
-  if (data.payment.billingAddress) completedFields++;
-
-  // Last login is often system-generated, so we can consider it "complete" if it exists
-  if (data.activity.lastLogin) completedFields++;
-
-  return (completedFields / totalFields) * 100;
-};
-
-const formatDateTime = (dateString: string) => {
-  if (!dateString) return null;
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return null;
-  return date.toLocaleDateString() + " at " + date.toLocaleTimeString();
-};
-
-import type { ReactNode } from "react";
-
-const ProfileSection = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) => {
-  const hasContent = React.Children.toArray(children).some(
-    (child) => child !== null && child !== undefined
-  );
-  if (!hasContent) return null;
-
-  return (
-    <div className="bg-white/5 rounded-2xl p-6 mb-6 backdrop-blur-sm shadow-lg border border-purple-400/20">
-      <h3 className="text-xl font-semibold mb-4 text-white">{title}</h3>
-      <div className="space-y-4">{children}</div>
-    </div>
-  );
-};
-
-type ProfileItemProps = {
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  label: string;
-  value: React.ReactNode;
-};
-
-const ProfileItem: React.FC<ProfileItemProps> = ({ icon: Icon, label, value }) => {
-  if (!value && value !== 0) return null;
-  return (
-    <div className="flex items-center text-white/80">
-      <Icon className="w-5 h-5 mr-3 text-purple-400" />
-      <span className="font-medium mr-2">{label}:</span>
-      <span className="text-white">{value}</span>
-    </div>
-  );
-};
-
-type SocialItemProps = {
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  url: string;
-};
-const SocialProfileItem: React.FC<SocialItemProps> = ({ icon: Icon, url }) => (
-  <a
-    href={url}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="text-purple-400 hover:text-white transition-colors duration-200"
-  >
-    <Icon className="w-6 h-6" />
-  </a>
-);
-
-type SocialIconProps = {
-  type: "facebook" | "instagram" | "linkedin" | "twitter";
-  url: string;
+    eventNotifications: boolean;
+    marketingEmails: boolean;
+    language: string;
+  };
+  avatar?: {
+    fileId?: string;
+    url?: string;
+    fileName?: string;
+  };
 }
 
-const SocialIcon: React.FC<SocialIconProps> = ({ type, url }) => {
-  if (!url) return null;
-  let IconComponent;
-  switch (type) {
-    case "facebook":
-      IconComponent = Facebook;
-      break;
-    case "instagram":
-      IconComponent = Instagram;
-      break;
-    case "linkedin":
-      IconComponent = Linkedin;
-      break;
-    case "twitter":
-      IconComponent = Twitter;
-      break;
-    default:
-      return null;
+interface FormField {
+  label: string;
+  name: string;
+  type: string;
+  required?: boolean;
+  options?: Array<{ value: string; label: string }>;
+}
+
+interface FormSection {
+  section: string;
+  fields: FormField[];
+}
+
+const profileFields: FormSection[] = [
+  {
+    section: "Personal Details",
+    fields: [
+      { label: "First Name", name: "firstName", type: "text", required: true },
+      { label: "Last Name", name: "lastName", type: "text", required: false },
+      { label: "Email", name: "email", type: "email", required: true },
+      { label: "Phone Number", name: "phone", type: "tel", required: false },
+      { label: "Date of Birth", name: "dateOfBirth", type: "date", required: false },
+      { 
+        label: "Gender", 
+        name: "gender", 
+        type: "select", 
+        options: [
+          { value: "male", label: "Male" },
+          { value: "female", label: "Female" },
+          { value: "other", label: "Other" },
+          { value: "prefer-not-to-say", label: "Prefer not to say" }
+        ],
+        required: false 
+      },
+    ]
+  },
+  {
+    section: "Address",
+    fields: [
+      { label: "Street Address", name: "address.street", type: "text", required: false },
+      { label: "City", name: "address.city", type: "text", required: false },
+      { label: "State", name: "address.state", type: "text", required: false },
+      { label: "Country", name: "address.country", type: "text", required: false },
+      { label: "Postal Code", name: "address.postalCode", type: "text", required: false },
+    ]
+  },
+  {
+    section: "Social Profiles",
+    fields: [
+      { label: "Facebook Profile", name: "socialProfiles.facebook", type: "url" },
+      { label: "Instagram Profile", name: "socialProfiles.instagram", type: "url" },
+      { label: "LinkedIn Profile", name: "socialProfiles.linkedin", type: "url" },
+      { label: "Twitter Profile", name: "socialProfiles.twitter", type: "url" },
+    ]
+  },
+  {
+    section: "Preferences",
+    fields: [
+      { label: "Event Notifications", name: "preferences.eventNotifications", type: "checkbox" },
+      { label: "Marketing Emails", name: "preferences.marketingEmails", type: "checkbox" },
+      { 
+        label: "Preferred Language", 
+        name: "preferences.language", 
+        type: "select",
+        options: [
+          { value: "en", label: "English" },
+          { value: "es", label: "Spanish" },
+          { value: "fr", label: "French" },
+          { value: "de", label: "German" }
+        ],
+        required: true
+      },
+    ]
   }
-  return <SocialProfileItem icon={IconComponent} url={url} />;
-};
+];
 
-// Memoized Edit Mode Component
-type EditProfileFormProps = {
-  formData: ProfileData;
-  setFormData: React.Dispatch<React.SetStateAction<ProfileData>>;
-  handleSave: () => void;
-  handleCancel: () => void;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-};
-
-const EditProfileForm: React.FC<EditProfileFormProps> = React.memo(
-  ({ formData, setFormData, handleSave, handleCancel, handleFileChange }) => {
-    const handleInputChange = (
-      e: React.ChangeEvent<HTMLInputElement>,
-      section: keyof ProfileData | null,
-      field: string
-    ) => {
-      const { value, type, checked } = e.target;
-      setFormData((prevData) => {
-        let finalValue: any = value;
-        if (type === "number") {
-          finalValue = value ? parseInt(value, 10) : null;
-        } else if (type === "checkbox") {
-          finalValue = checked;
-        }
-
-        if (section) {
-            return {
-            ...prevData,
-            [section]: {
-              ...(typeof prevData[section] === "object" && prevData[section] !== null ? prevData[section] : {}),
-              [field]: finalValue,
-            },
-            };
-        } else {
-          return {
-            ...prevData,
-            [field]: finalValue,
-          };
-        }
-      });
-    };
-
-    return (
-      <div className="space-y-8">
-        <h2 className="text-3xl font-bold text-white mb-6 text-center">
-          Edit Profile
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <ProfileSection title="Personal & Contact Details">
-            <label className="block">
-              <span className="text-white/80 font-medium">
-                Profile Picture:
-              </span>
-              <input
-                type="file"
-                onChange={handleFileChange}
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">Full Name:</span>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => handleInputChange(e, null, "name")}
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">Email:</span>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange(e, null, "email")}
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">Phone Number:</span>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleInputChange(e, null, "phone")}
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">Address:</span>
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => handleInputChange(e, null, "address")}
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">Date of Birth:</span>
-              <input
-                type="date"
-                value={formData.personalDetails.dob}
-                onChange={(e) => handleInputChange(e, "personalDetails", "dob")}
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">Gender:</span>
-              <input
-                type="text"
-                value={formData.personalDetails.gender}
-                onChange={(e) =>
-                  handleInputChange(e, "personalDetails", "gender")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-          </ProfileSection>
-
-          <ProfileSection title="Social Profiles">
-            <label className="block">
-              <span className="text-white/80 font-medium">Facebook:</span>
-              <input
-                type="text"
-                value={formData.socialProfiles.facebook}
-                onChange={(e) =>
-                  handleInputChange(e, "socialProfiles", "facebook")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">Instagram:</span>
-              <input
-                type="text"
-                value={formData.socialProfiles.instagram}
-                onChange={(e) =>
-                  handleInputChange(e, "socialProfiles", "instagram")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">LinkedIn:</span>
-              <input
-                type="text"
-                value={formData.socialProfiles.linkedin}
-                onChange={(e) =>
-                  handleInputChange(e, "socialProfiles", "linkedin")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">Twitter:</span>
-              <input
-                type="text"
-                value={formData.socialProfiles.twitter}
-                onChange={(e) =>
-                  handleInputChange(e, "socialProfiles", "twitter")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-          </ProfileSection>
-
-          <ProfileSection title="Preferences">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.preferences.notifications}
-                onChange={(e) =>
-                  handleInputChange(e, "preferences", "notifications")
-                }
-                className="form-checkbox rounded text-purple-600 bg-white/10 border-gray-700 focus:ring-purple-500"
-              />
-              <span className="text-white/80 font-medium">
-                Enable Notifications
-              </span>
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">
-                Language Preference:
-              </span>
-              <input
-                type="text"
-                value={formData.preferences.language}
-                onChange={(e) =>
-                  handleInputChange(e, "preferences", "language")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.preferences.marketing}
-                onChange={(e) =>
-                  handleInputChange(e, "preferences", "marketing")
-                }
-                className="form-checkbox rounded text-purple-600 bg-white/10 border-gray-700 focus:ring-purple-500"
-              />
-              <span className="text-white/80 font-medium">
-                Receive Marketing Emails
-              </span>
-            </label>
-          </ProfileSection>
-
-          <ProfileSection title="Activity Tracking">
-            <label className="block">
-              <span className="text-white/80 font-medium">Hosted Events:</span>
-              <input
-                type="number"
-                value={formData.activity.hostedEvents ?? ""}
-                onChange={(e) =>
-                  handleInputChange(e, "activity", "hostedEvents")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">
-                Attended Events:
-              </span>
-              <input
-                type="number"
-                value={formData.activity.attendedEvents ?? ""}
-                onChange={(e) =>
-                  handleInputChange(e, "activity", "attendedEvents")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">
-                Bookmarked Venues:
-              </span>
-              <input
-                type="number"
-                value={formData.activity.bookmarkedVenues ?? ""}
-                onChange={(e) =>
-                  handleInputChange(e, "activity", "bookmarkedVenues")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-          </ProfileSection>
-
-          <ProfileSection title="Payment Information">
-            <label className="block">
-              <span className="text-white/80 font-medium">
-                Default Payment Method:
-              </span>
-              <input
-                type="text"
-                value={formData.payment.defaultPaymentMethod}
-                onChange={(e) =>
-                  handleInputChange(e, "payment", "defaultPaymentMethod")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/80 font-medium">
-                Billing Address:
-              </span>
-              <input
-                type="text"
-                value={formData.payment.billingAddress}
-                onChange={(e) =>
-                  handleInputChange(e, "payment", "billingAddress")
-                }
-                className="mt-1 block w-full rounded-md border-gray-700 bg-white/10 text-white shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50"
-              />
-            </label>
-          </ProfileSection>
-        </div>
-
-        <div className="flex justify-end space-x-4 mt-8">
-          <button
-            onClick={handleCancel}
-            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-6 rounded-full transition-colors duration-300"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-full transition-colors duration-300"
-          >
-            Save Changes
-          </button>
-        </div>
-      </div>
-    );
-  }
+// SVG Icons Components
+const CameraIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
 );
 
+const LoadingSpinner = () => (
+  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+);
+
+const DEFAULT_AVATAR = '/images/UserAvatars/Male.png';
+
 export default function UserProfilePage() {
-  const { user } = useAuth(); // Get current user from auth context
-  const [profileData, setProfileData] = useState(initialProfileData);
-  const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
-  const [completion, setCompletion] = useState(0);
-  const [mode, setMode] = useState("view"); // 'view' or 'edit'
-  const [formData, setFormData] = useState(initialProfileData);
-
-  useEffect(() => {
-    setCompletion(progressCalculator(profileData, profileImage));
-  }, [profileData, profileImage]);
-
-  useEffect(() => {
-    if (mode === "edit") {
-      setFormData(profileData);
+  const { user } = useAuth();
+  
+  const getInitialFormData = (): UserProfile => ({
+    firstName: user?.displayName?.split(' ')[0] || '',
+    lastName: user?.displayName?.split(' ').slice(1).join(' ') || '',
+    email: user?.email || '',
+    phone: '',
+    dateOfBirth: '',
+    gender: 'prefer-not-to-say',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      country: '',
+      postalCode: ''
+    },
+    socialProfiles: {
+      facebook: '',
+      instagram: '',
+      linkedin: '',
+      twitter: ''
+    },
+    preferences: {
+      eventNotifications: true,
+      marketingEmails: true,
+      language: 'en'
+    },
+    avatar: {
+      fileId: '',
+      url: '',
+      fileName: ''
     }
-  }, [mode, profileData]);
+  });
+
+  const [formData, setFormData] = useState<UserProfile>(getInitialFormData());
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Clean up object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (profileImagePreview && profileImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImagePreview);
+      }
+    };
+  }, [profileImagePreview]);
+
+  // Debug: Log form data changes
+  useEffect(() => {
+    console.log('Current form data:', formData);
+  }, [formData]);
+
+  // Update form data when user changes
+  useEffect(() => {
+    if (user) {
+      const displayNameParts = user.displayName?.split(' ') || ['', ''];
+      setFormData(prev => ({
+        ...prev,
+        firstName: prev.firstName || displayNameParts[0] || '',
+        lastName: prev.lastName || displayNameParts.slice(1).join(' ') || '',
+        email: prev.email || user.email || ''
+      }));
+    }
+  }, [user]);
 
   useEffect(() => {
-    const fetchProfileData = async () => {
+    const fetchUserProfile = async () => {
       if (!user?.uid) return;
 
       try {
-        // Using DB_Routes for getting profile data from db
-        const response = await fetch(`/api/DB_Routes/user/${user.uid}`, {
-          headers: {
-            Authorization: `Bearer ${await user.getIdToken()}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch profile data");
+        const response = await ApiClient.get<UserProfile>(`/DB_Routes/user/${user.uid}`);
+        
+        if (!response.success) {
+          console.log('Profile not found, using default values');
+          // If user profile doesn't exist, keep the default form data
+          return;
         }
-
-        const { data } = await response.json();
-
-        // Transform the data to match your frontend structure
-        const transformedData = {
-          name: `${data.firstName} ${data.lastName}`,
-          email: data.email,
-          phone: data.phone,
-          address: data.address
-            ? [
-                data.address.street,
-                data.address.city,
-                data.address.state,
-                data.address.country,
-                data.address.postalCode,
-              ]
-                .filter(Boolean)
-                .join(", ")
-            : "",
-          socialProfiles: data.socialProfiles || {},
-          personalDetails: {
-            dob: data.dateOfBirth ?? "",
-            gender: data.gender ?? "",
-          },
-          preferences: {
-            notifications: data.preferences?.eventNotifications ?? false,
-            language: data.preferences?.language ?? "",
-            marketing: data.preferences?.marketingEmails ?? false,
-          },
-          accountManagement: {
-            role: data.role ?? "",
-            status: data.accountStatus ?? "",
-            verification: data.isVerified ? "Verified" : "Unverified",
-          },
-          activity: {
-            lastLogin: data.lastLogin ?? "",
-            createdAt: data.createdAt ?? "",
-            updatedAt: data.updatedAt ?? "",
-            hostedEvents: data.eventsHosted?.length ?? 0,
-            attendedEvents: data.eventsAttended?.length ?? 0,
-            bookmarkedVenues: data.bookmarks?.length ?? 0,
-            guests : data.guests ?? 0,
-          },
-          payment: {
-            defaultPaymentMethod: data.defaultPaymentMethod ?? "",
-            billingAddress: data.billingAddress
-              ? [
-                  data.billingAddress.street,
-                  data.billingAddress.city,
-                  data.billingAddress.state,
-                  data.billingAddress.country,
-                  data.billingAddress.postalCode,
-                ]
-                  .filter(Boolean)
-                  .join(", ")
-              : "",
-          },
-          avatar: data.avatar,
-        };
-
-        setProfileData(transformedData);
-        setFormData(transformedData); // Update form data
-
-        // If there's an avatar, create the preview
-        if (data.avatar?.data) {
-          try {
-            const imageUrl = `data:${data.avatar.contentType};base64,${arrayBufferToBase64(data.avatar.data)}`;
-            setProfileImagePreview(imageUrl);
-          } catch (err) {
-            setProfileImagePreview("/images/UserAvatars/Male.png");
-            toast.error("Failed to load profile picture, using fallback image.");
+        
+        console.log('Profile data from server:', response); // Debug log
+        
+        if (response.data) {
+          const userData = response.data;
+          // Merge fetched data with default structure to ensure all fields exist
+          const mergedData: UserProfile = {
+            firstName: userData.firstName || user?.displayName?.split(' ')[0] || '',
+            lastName: userData.lastName || user?.displayName?.split(' ').slice(1).join(' ') || '',
+            email: userData.email || user?.email || '',
+            phone: userData.phone || '',
+            dateOfBirth: userData.dateOfBirth || '',
+            gender: userData.gender || 'prefer-not-to-say',
+            address: {
+              street: (typeof userData.address === 'object' && userData.address?.street) || '',
+              city: (typeof userData.address === 'object' && userData.address?.city) || '',
+              state: (typeof userData.address === 'object' && userData.address?.state) || '',
+              country: (typeof userData.address === 'object' && userData.address?.country) || '',
+              postalCode: (typeof userData.address === 'object' && userData.address?.postalCode) || ''
+            },
+            socialProfiles: {
+              facebook: userData.socialProfiles?.facebook || '',
+              instagram: userData.socialProfiles?.instagram || '',
+              linkedin: userData.socialProfiles?.linkedin || '',
+              twitter: userData.socialProfiles?.twitter || ''
+            },
+            preferences: {
+              eventNotifications: userData.preferences?.eventNotifications !== undefined ? userData.preferences.eventNotifications : true,
+              marketingEmails: userData.preferences?.marketingEmails !== undefined ? userData.preferences.marketingEmails : true,
+              language: userData.preferences?.language || 'en'
+            },
+            avatar: {
+              fileId: (typeof userData.avatar === 'object' && userData.avatar?.fileId) || '',
+              url: (typeof userData.avatar === 'object' && userData.avatar?.url) || '',
+              fileName: (typeof userData.avatar === 'object' && userData.avatar?.fileName) || ''
+            }
+          };
+          
+          console.log('Setting form data:', mergedData); // Debug log
+          setFormData(mergedData);
+          
+          if (typeof userData.avatar === 'object' && userData.avatar?.url) {
+            setProfileImagePreview(userData.avatar.url);
           }
-        } else {
-          setProfileImagePreview("/images/UserAvatars/Male.png");
-          toast("No profile picture found, using fallback image.", { icon: "ℹ️" });
         }
       } catch (error) {
-        console.error("Error fetching profile:", error);
-        toast.error("Failed to load profile data");
+        console.error('Error fetching profile:', error);
+        // Keep default form data if fetch fails
       }
     };
 
-    fetchProfileData();
+    fetchUserProfile();
   }, [user]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) {
-      return;
-    }
-    const file = files[0];
-
-    if (file) {
-      // Check file size
-      // if (file.size > 504800) {
-      //   toast.error("Image size should not exceed 500KB");
-      //   return;
-      // }
-
-      // Check file type
-      if (!file.type.startsWith("image/")) {
-        toast.error("Only image files are allowed");
-        return;
-      }
-
-      setProfileImage(file);
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setProfileImagePreview(previewUrl);
-    }
+  const getNestedValue = (obj: any, path: string) => {
+    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
   };
 
-  const handleSave = async () => {
-    // Get the current user's UID from Firebase auth
-    if (!user?.uid) {
-      toast.error("Please login to update your profile");
+  const setNestedValue = (obj: any, path: string, value: any) => {
+    const parts = path.split('.');
+    const lastPart = parts.pop()!;
+    const target = parts.reduce((acc, part) => {
+      acc[part] = acc[part] || {};
+      return acc[part];
+    }, obj);
+    target[lastPart] = value;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    const isCheckbox = type === 'checkbox';
+    const fieldValue = isCheckbox ? (e.target as HTMLInputElement).checked : value;
+
+    const newFormData = { ...formData };
+    setNestedValue(newFormData, name, fieldValue);
+    setFormData(newFormData);
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
       return;
     }
 
-    const formDataToSend = new FormData();
-
-    // Add the avatar file if it exists
-    if (profileImage) {
-      formDataToSend.append("avatar", profileImage);
+    // Check file size (5MB limit)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('File size must be less than 5MB');
+      return;
     }
 
-    // Add other user data
-    formDataToSend.append("userData", JSON.stringify(formData));
-    
-    const response = await fetch(
-      `/api/DB_Routes/updateuser/${user.uid}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${await user.getIdToken()}`,
-        },
-        body: formDataToSend,
+    try {
+      setIsLoading(true);
+
+      // Create a preview immediately for better UX
+      const objectUrl = URL.createObjectURL(file);
+      // Clean up previous preview URL if it exists
+      if (profileImagePreview && profileImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImagePreview);
       }
-    );
+      setProfileImagePreview(objectUrl);
+      
+      // Upload to Appwrite
+      if (!user?.uid) {
+        throw new Error('User ID not found');
+      }
 
-    if (!response.ok) {
-      toast.error(`HTTP error! status: ${response.status}`);
-      return;
-    }
+      const result = await uploadUserProfileImage(file, user.uid);
+      console.log('Upload result:', result); // Debug log
 
-    const result = await response.json();
-
-    if (result.success) {
-      setProfileData({
+      // Update form data with the new avatar information
+      const updatedFormData = {
         ...formData,
-        avatar: result.user.avatar,
-      });
-      setMode("view");
-      toast.success("Profile updated successfully!");
-    } else {
-      toast.error(result.message || "Failed to update profile");
+        avatar: {
+          fileId: result.fileId,
+          url: result.url,
+          fileName: result.fileName
+        }
+      };
+
+      console.log('Updating form data with:', updatedFormData); // Debug log
+      setFormData(updatedFormData);
+
+      // Set the final URL as preview
+      setProfileImagePreview(result.url);
+      toast.success('Profile image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      toast.error('Failed to upload profile image');
+      // Reset preview on error
+      setProfileImagePreview(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };    const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.uid) {
+      toast.error('Please login to update profile');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('Submitting form data:', formData); // Debug log
+
+      // Update user profile
+      const updateResponse = await ApiClient.put<UserProfile>(
+        `/DB_Routes/updateuser/${user.uid}`,
+        formData
+      );
+
+      if (!updateResponse.success) {
+        throw new Error('Failed to update profile');
+      }
+      
+      if (updateResponse.success) {
+        toast.success('Profile updated successfully');
+      } else {
+        throw new Error(updateResponse.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const handleCancel = () => {
-    setMode("view");
-  };
-
-  const ViewMode = () => (
-    <>
-      {/* Profile Completion Bar */}
-      <div className="bg-white/10 rounded-full h-4 mb-8">
-        <div
-          className="bg-purple-500 h-full rounded-full transition-all duration-500 ease-in-out"
-          style={{ width: `${completion}%` }}
-        ></div>
-      </div>
-      <p className="text-center mb-10 text-sm sm:text-base text-white/80">
-        Profile completion:{" "}
-        <span className="font-bold text-purple-300">
-          {Math.round(completion)}%
-        </span>
-      </p>
-
-      {/* Main Content Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <ProfileSection title="Contact Information">
-          <ProfileItem icon={Phone} label="Phone" value={profileData.phone} />
-          <ProfileItem icon={Mail} label="Email" value={profileData.email} />
-          <ProfileItem
-            icon={MapPin}
-            label="Address"
-            value={profileData.address}
-          />
-          <div className="flex items-center space-x-4 pt-2">
-            <span className="text-white/80 font-medium">Socials:</span>
-            {Object.entries(profileData.socialProfiles).map(([key, url]) => {
-              const allowedTypes = ["facebook", "instagram", "linkedin", "twitter"] as const;
-              return allowedTypes.includes(key as any) ? (
-                <SocialIcon key={key} type={key as typeof allowedTypes[number]} url={url} />
-              ) : null;
-            })}
-          </div>
-        </ProfileSection>
-        <ProfileSection title="Personal Details">
-          <ProfileItem
-            icon={Calendar}
-            label="Date of Birth"
-            value={profileData.personalDetails.dob}
-          />
-          <ProfileItem
-            icon={User}
-            label="Gender"
-            value={profileData.personalDetails.gender}
-          />
-        </ProfileSection>
-        <ProfileSection title="Preferences">
-          <ProfileItem
-            icon={Bell}
-            label="Notifications"
-            value={profileData.preferences.notifications ? "Enabled" : null}
-          />
-          <ProfileItem
-            icon={Globe}
-            label="Language"
-            value={profileData.preferences.language}
-          />
-          <ProfileItem
-            icon={Mail}
-            label="Marketing"
-            value={profileData.preferences.marketing ? "Opt-in" : null}
-          />
-        </ProfileSection>
-        <ProfileSection title="Account Management">
-          <ProfileItem
-            icon={Briefcase}
-            label="Role"
-            value={profileData.accountManagement.role}
-          />
-          <ProfileItem
-            icon={CheckCircle}
-            label="Account Status"
-            value={profileData.accountManagement.status}
-          />
-          <ProfileItem
-            icon={Users}
-            label="Verification"
-            value={profileData.accountManagement.verification}
-          />
-        </ProfileSection>
-        <ProfileSection title="Activity Tracking">
-          <ProfileItem
-            icon={Clock}
-            label="Last Login"
-            value={
-              profileData.activity.lastLogin
-                ? formatDateTime(profileData.activity.lastLogin)
-                : null
-            }
-          />
-          <ProfileItem
-            icon={BarChart2}
-            label="Hosted Events"
-            value={profileData.activity.hostedEvents}
-          />
-          <ProfileItem
-            icon={Users}
-            label="Attended Events"
-            value={profileData.activity.attendedEvents}
-          />
-          <ProfileItem
-            icon={Bookmark}
-            label="Bookmarked Venues"
-            value={profileData.activity.bookmarkedVenues}
-          />
-        </ProfileSection>
-        <ProfileSection title="Payment Information">
-          <ProfileItem
-            icon={CreditCard}
-            label="Payment Method"
-            value={profileData.payment.defaultPaymentMethod}
-          />
-          <ProfileItem
-            icon={MapPin}
-            label="Billing Address"
-            value={profileData.payment.billingAddress}
-          />
-        </ProfileSection>
-      </div>
-    </>
-  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1b1b40] via-[#2a1a45] to-[#3a205a] text-white font-sans p-4 sm:p-8 flex items-center justify-center">
-      <div className="w-full max-w-4xl mx-auto rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
-        {/* Background Gradients */}
-        <div className="absolute top-0 left-0 w-full h-full -z-10">
-          <div className="absolute w-64 h-64 bg-purple-500 rounded-full blur-[100px] opacity-20 -top-10 -left-10 animate-pulse"></div>
-          <div className="absolute w-96 h-96 bg-indigo-500 rounded-full blur-[150px] opacity-15 -bottom-20 -right-20 animate-pulse-slow"></div>
-        </div>
-
-        {/* Header */}
-        <header className="flex items-center justify-between mb-8 pb-4 border-b border-purple-400/30">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-purple-400 shadow-md flex items-center justify-center bg-gray-700">
-              {getImageSource(profileData, profileImagePreview) ? (
+    <div className="min-h-screen bg-gradient-to-br from-[#1b1b40] via-[#2a1a45] to-[#3a205a] text-white font-sans p-4 sm:p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white/5 rounded-3xl p-8 backdrop-blur-sm shadow-xl border border-purple-400/20">
+          <h1 className="text-3xl font-bold text-center mb-8">User Profile</h1>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Profile Image Section */}
+            <div className="flex flex-col items-center mb-8">
+              <div className="relative">
                 <img
-                  src={getImageSource(profileData, profileImagePreview)}
+                  src={profileImagePreview || DEFAULT_AVATAR}
                   alt="Profile"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.onerror = null; // Prevent infinite loop
-                    target.src = "/images/UserAvatars/Male.png"; // Set a valid fallback image
-                    console.log("Error loading profile image");
-                  }}
+                  className="w-32 h-32 rounded-full object-cover border-4 border-purple-400/50"
                 />
-              ) : (
-                <User className="w-10 h-10 text-gray-400" />
-              )}
+                <label className="absolute bottom-0 right-0 bg-purple-500 p-2 rounded-full cursor-pointer hover:bg-purple-600 transition-colors">
+                  <CameraIcon />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-wide">
-                {profileData.name || "Complete Your Profile"}
-              </h1>
-              <p className="text-white/70 text-sm sm:text-base">
-                {profileData.accountManagement.role || "Unspecified Role"}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setMode(mode === "view" ? "edit" : "view")}
-            className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-full transition-colors duration-300 shadow-lg flex items-center space-x-2"
-          >
-            <Edit3 className="w-4 h-4" />
-            <span>{mode === "view" ? "Edit Profile" : "View Profile"}</span>
-          </button>
-        </header>
 
-        {mode === "view" ? (
-          <ViewMode />
-        ) : (
-          <EditProfileForm
-            formData={formData}
-            setFormData={setFormData}
-            handleSave={handleSave}
-            handleCancel={handleCancel}
-            handleFileChange={handleFileChange}
-          />
-        )}
+            {/* Form Sections */}
+            {profileFields.map((section, index) => (
+              <div key={index} className="bg-white/5 rounded-xl p-6">
+                <h2 className="text-xl font-semibold mb-4 text-purple-300">
+                  {section.section}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {section.fields.map((field, fieldIndex) => (
+                    <div key={fieldIndex}>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        {field.label} {field.required && <span className="text-red-500">*</span>}
+                      </label>
+                      {field.type === 'select' ? (
+                        <select
+                          name={field.name}
+                          value={getNestedValue(formData, field.name) || ''}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full rounded-lg border border-purple-300 bg-gray-900/50 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-purple-500 p-3"
+                          required={field.required}
+                        >
+                          {field.options?.map((option, i) => (
+                            <option key={i} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : field.type === 'checkbox' ? (
+                        <label className="inline-flex items-center mt-1">
+                          <input
+                            type="checkbox"
+                            name={field.name}
+                            checked={getNestedValue(formData, field.name) || false}
+                            onChange={handleInputChange}
+                            className="form-checkbox h-5 w-5 text-purple-500 rounded border-purple-300 focus:ring-purple-500"
+                          />
+                          <span className="ml-2 text-white">Enable</span>
+                        </label>
+                      ) : field.type === 'textarea' ? (
+                        <textarea
+                          name={field.name}
+                          value={getNestedValue(formData, field.name) || ''}
+                          onChange={(e) => handleInputChange(e as any)}
+                          rows={4}
+                          className="mt-1 block w-full rounded-lg border border-purple-300 bg-gray-900/50 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-purple-500 p-3"
+                          required={field.required}
+                          placeholder="Enter your complete address"
+                        />
+                      ) : (
+                        <input
+                          type={field.type}
+                          name={field.name}
+                          value={getNestedValue(formData, field.name) || ''}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full rounded-lg border border-purple-300 bg-gray-900/50 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-purple-500 p-3"
+                          required={field.required}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* Submit Button */}
+            <div className="flex justify-end mt-8">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="py-3 px-8 bg-gradient-to-r from-purple-500 to-purple-700 text-white font-bold rounded-lg shadow-lg hover:from-purple-600 hover:to-purple-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner />
+                    <span className="ml-2">Updating...</span>
+                  </>
+                ) : (
+                  'Update Profile'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
 }
-
-// Helper: Convert ArrayBuffer or Uint8Array to base64 string (browser-safe)
-function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
-  let binary = '';
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
-}
-// Returns the avatar image URL or a fallback if not available
-const getImageSource = (
-  profileData: ProfileData,
-  profileImagePreview: string | null
-): string => {
-  if (profileImagePreview) {
-    return profileImagePreview;
-  }
-  if (profileData.avatar?.data) {
-    return `data:${profileData.avatar.contentType};base64,${arrayBufferToBase64(
-      profileData.avatar.data
-    )}`;
-  }
-  // fallback image
-  return "/images/UserAvatars/Male.png";
-};

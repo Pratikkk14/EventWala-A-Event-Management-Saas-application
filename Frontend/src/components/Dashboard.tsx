@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
+
 //@ts-ignore
 import { EventTypeContext } from "../context/EventTypeContext";
+import { useLocationContext } from "../context/LocationContext";
 import { useAuth } from "../hooks/useAuth";
+import ApiClient  from "../utils/apiClient";
+
 import {
   Search,
   User,
   Calendar,
-  Users,
   LogOut,
   Baby,
   Cake,
@@ -23,19 +26,56 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-import defaultAvatar from "../images/UserAvatars/Male.png";
+// Use absolute path from public directory for default avatar
+const defaultAvatar = "/images/UserAvatars/Male.png";
 import { useNavigate } from "react-router-dom";
 
+interface MongoUser {
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: {
+    fileId?: string;
+    url?: string;
+    fileName?: string;
+  };
+}
+
 const Dashboard: React.FC = () => {
-
-
   const { user, logout } = useAuth();
+  const [mongoUser, setMongoUser] = useState<MongoUser | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+
+  // Fetch MongoDB user data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.uid) return;
+
+      try {
+        const response = await ApiClient.get(`/DB_Routes/user/${user.uid}`);
+        
+        if (!response.success) {
+          console.log('Profile not found, using default values');
+          return;
+        }
+        
+        const data = response;
+        if (data.success && data.data) {
+          setMongoUser(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [typedText, setTypedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [textIndex, setTextIndex] = useState(0);
+  const { getCurrentLocation } = useLocationContext();
   const navigate = useNavigate();
 
   const textsToAnimate = [
@@ -68,6 +108,10 @@ const Dashboard: React.FC = () => {
   );
   const userMenuRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+  getCurrentLocation();
+    }, []);
 
   useEffect(() => {
     const handleTyping = () => {
@@ -241,10 +285,10 @@ const Dashboard: React.FC = () => {
   );
 
   const renderProfileImage = () => {
-    if (user?.photoURL) {
+    if (mongoUser?.avatar?.url || user?.photoURL) {
       return (
         <img
-          src={user.photoURL}
+          src={mongoUser?.avatar?.url || user?.photoURL || defaultAvatar}
           alt="User"
           className="w-8 h-8 rounded-full object-cover"
         />
@@ -271,10 +315,10 @@ const Dashboard: React.FC = () => {
   };
 
   const renderSidebarProfileImage = () => {
-    if (user?.photoURL) {
+    if (mongoUser?.avatar?.url || user?.photoURL) {
       return (
         <img
-          src={user.photoURL}
+          src={mongoUser?.avatar?.url || user?.photoURL || defaultAvatar}
           alt="User"
           className="w-12 h-12 rounded-full object-cover"
         />
@@ -359,17 +403,20 @@ const Dashboard: React.FC = () => {
             </div>
             <div>
               <div className="text-white font-medium text-lg line-clamp-1">
-                {user?.displayName || "Pratik Pujari"}
+                {user?.displayName || "No UserName"}
               </div>
               <div className="text-purple-300 text-xs line-clamp-1">
-                {user?.email || "pratik146971@gmail.com"}
+                {user?.email || "No Email"}
               </div>
             </div>
           </div>
 
           {/* Navigation */}
           <nav className="flex flex-col gap-4 w-full mb-10 px-3">
-            <button className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group">
+            <button
+              className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group"
+              onClick={() => navigate("/all-event-map")}
+            >
               <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <span
                 className={`text-sm font-medium transition-opacity duration-300 ${
@@ -381,48 +428,59 @@ const Dashboard: React.FC = () => {
                 Find Events
               </span>
             </button>
-            <button className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group">
+            <button
+              className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group"
+              onClick={() => navigate("/my-bookings")}
+            >
               <BookOpen className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <span
-                className={`text-sm font-medium transition-opacity duration-300 ${
-                  isSidebarExpanded
-                    ? "opacity-100"
-                    : "opacity-0 absolute left-16"
-                }`}
+              className={`text-sm font-medium transition-opacity duration-300 ${
+                isSidebarExpanded
+                ? "opacity-100"
+                : "opacity-0 absolute left-16"
+              }`}
               >
-                My Bookings
+              My Bookings
               </span>
             </button>
-            <button className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group">
+            {/* Event Media Hub - Commented out
+            <button
+              className="flex items-center gap-4 px-3 py-3 text-white hover:bg-purple-600/30 rounded-xl transition-all duration-300 group"
+              onClick={() => navigate("/media-hub")}
+            >
               <Users className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <span
-                className={`text-sm font-medium transition-opacity duration-300 ${
-                  isSidebarExpanded
-                    ? "opacity-100"
-                    : "opacity-0 absolute left-16"
-                }`}
+              className={`text-sm font-medium transition-opacity duration-300 ${
+                isSidebarExpanded
+                ? "opacity-100"
+                : "opacity-0 absolute left-16"
+              }`}
               >
-                My Guests
+              Event Media Hub
               </span>
             </button>
+            */}
           </nav>
 
           {/* Vendor CTA */}
-          <div
+            <div
             className={`bg-gradient-to-r from-purple-600/20 to-indigo-600/20 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-6 text-center hover:scale-105 transition-transform duration-300 ${
               isSidebarExpanded ? "opacity-100" : "opacity-0 hidden"
             }`}
-          >
+            >
             <h3 className="text-xl font-bold text-white mb-2">
               Become a Vendor
             </h3>
             <p className="text-purple-200 text-sm mb-4">
               List your own venue and services. Reach thousands of customers.
             </p>
-            <button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300">
+            <button
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300"
+              onClick={() => navigate("/become-vendor")}
+            >
               Get Started
             </button>
-          </div>
+            </div>
         </div>
       </aside>
 
@@ -477,10 +535,10 @@ const Dashboard: React.FC = () => {
                     <User className="w-4 h-4 mr-2" />
                     <span>Profile</span>
                   </button>
-                <button className="flex items-center w-full px-4 py-2 text-white hover:bg-purple-600/30 transition-colors">
+                {/* <button className="flex items-center w-full px-4 py-2 text-white hover:bg-purple-600/30 transition-colors">
                   <User className="w-4 h-4 mr-2" />
                   <span>Settings</span>
-                </button>
+                </button> */}
                 <button
                   onClick={handleLogout}
                   className="flex items-center w-full px-4 py-2 text-red-400 hover:bg-red-500/20 transition-colors border-t border-purple-500/20"

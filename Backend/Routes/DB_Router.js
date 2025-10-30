@@ -13,7 +13,6 @@ router.post("/createuser", createUser);
 router.put(
   "/updateuser/:uid",
   authenticate,
-  upload.single("avatar"),
   updateUser
 );
 
